@@ -204,6 +204,38 @@ function deleteNote(bookmarkId) {
   const stmt = db.prepare("DELETE FROM notes WHERE bookmark_id = ?");
   return stmt.run(bookmarkId);
 }
+function getBookmarksWithTags(filters = {}) {
+  const { tag, search, author, limit = 20, offset = 0 } = filters;
+  const bookmarks = getBookmarks(filters);
+  const bookmarkIds = bookmarks.map((b) => b.id);
+  if (bookmarkIds.length === 0) {
+    return bookmarks.map((b) => ({ ...b, tags: [] }));
+  }
+  const placeholders = bookmarkIds.map(() => "?").join(",");
+  const stmt = db.prepare(`
+    SELECT bt.bookmark_id, t.id, t.name, t.color, t.created_at
+    FROM bookmark_tags bt
+    INNER JOIN tags t ON bt.tag_id = t.id
+    WHERE bt.bookmark_id IN (${placeholders})
+  `);
+  const allTags = stmt.all(...bookmarkIds);
+  const tagsMap = {};
+  for (const record of allTags) {
+    if (!tagsMap[record.bookmark_id]) {
+      tagsMap[record.bookmark_id] = [];
+    }
+    tagsMap[record.bookmark_id].push({
+      id: record.id,
+      name: record.name,
+      color: record.color,
+      created_at: record.created_at
+    });
+  }
+  return bookmarks.map((b) => ({
+    ...b,
+    tags: tagsMap[b.id] || []
+  }));
+}
 function getStats() {
   const bookmarksCount = db.prepare("SELECT COUNT(*) as count FROM bookmarks").get().count;
   const tagsCount = db.prepare("SELECT COUNT(*) as count FROM tags").get().count;
@@ -258,6 +290,9 @@ async function importBookmarks(filePath) {
 function registerIpcHandlers() {
   ipcMain.handle("bookmarks:get", (event, filters) => {
     return getBookmarks(filters);
+  });
+  ipcMain.handle("bookmarks:getWithTags", (event, filters) => {
+    return getBookmarksWithTags(filters);
   });
   ipcMain.handle("bookmarks:getById", (event, id) => {
     return getBookmarkById(id);

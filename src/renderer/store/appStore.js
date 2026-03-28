@@ -30,7 +30,8 @@ export const useAppStore = create((set, get) => ({
     const state = get()
     set({ isLoading: true })
     try {
-      const bookmarks = await window.api.getBookmarks({
+      // Usar novo endpoint otimizado que retorna tags em 1 query
+      const bookmarks = await window.api.getBookmarksWithTags({
         tag: state.selectedTag,
         search: state.searchQuery
       })

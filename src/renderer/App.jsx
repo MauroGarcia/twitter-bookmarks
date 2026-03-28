@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { useAppStore } from './store/appStore'
 import { Sidebar } from './components/Sidebar'
 import { SearchBar } from './components/SearchBar'
@@ -15,7 +15,6 @@ export default function App() {
     searchQuery,
     loadBookmarks
   } = useAppStore()
-  const [selectedBookmarkTags, setSelectedBookmarkTags] = useState([])
 
   useEffect(() => {
     // Inicializar dados
@@ -27,19 +26,12 @@ export default function App() {
     loadBookmarks()
   }, [selectedTag, searchQuery])
 
-  const handleSelectBookmark = async (bookmark) => {
+  const handleSelectBookmark = (bookmark) => {
     setSelectedBookmark(bookmark)
-    try {
-      const tags = await window.api.getBookmarkTags(bookmark.id)
-      setSelectedBookmarkTags(tags)
-    } catch (error) {
-      console.error('Erro ao carregar tags do bookmark:', error)
-    }
   }
 
   const handleCloseDetail = () => {
     setSelectedBookmark(null)
-    setSelectedBookmarkTags([])
   }
 
   return (
@@ -60,7 +52,7 @@ export default function App() {
       {selectedBookmark && (
         <TweetDetail
           bookmark={selectedBookmark}
-          tags={selectedBookmarkTags}
+          tags={selectedBookmark.tags || []}
           onClose={handleCloseDetail}
         />
       )}

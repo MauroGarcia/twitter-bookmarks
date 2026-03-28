@@ -8,6 +8,10 @@ export function registerIpcHandlers() {
     return db.getBookmarks(filters)
   })
 
+  ipcMain.handle('bookmarks:getWithTags', (event, filters) => {
+    return db.getBookmarksWithTags(filters)
+  })
+
   ipcMain.handle('bookmarks:getById', (event, id) => {
     return db.getBookmarkById(id)
   })

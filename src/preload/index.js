@@ -3,6 +3,7 @@ import { contextBridge, ipcRenderer } from 'electron'
 const api = {
   // Bookmarks
   getBookmarks: (filters) => ipcRenderer.invoke('bookmarks:get', filters),
+  getBookmarksWithTags: (filters) => ipcRenderer.invoke('bookmarks:getWithTags', filters),
   getBookmarkById: (id) => ipcRenderer.invoke('bookmarks:getById', id),
   deleteBookmark: (id) => ipcRenderer.invoke('bookmarks:delete', id),
 
