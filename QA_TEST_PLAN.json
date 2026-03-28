@@ -1,0 +1,904 @@
+{
+  "qa_summary": "Aplicação Electron + React + SQLite para gerenciamento de bookmarks do Twitter. Análise de 6 funcionalidades críticas: Importação, CRUD de Tags, Pesquisa/Filtro (FTS5), Gerenciamento de Notas, Exclusão de Bookmarks e UI Responsiva. Nenhum teste automatizado detectado atualmente. Riscos identificados: performance em 1000+ bookmarks, validação de entrada, tratamento de erros em import, concorrência de DB.",
+
+  "critical_scenarios": [
+    {
+      "feature": "Importação de Bookmarks (bookmarks.js)",
+      "description": "Funcionalidade central: importar arquivo bookmarks.js do Twitter",
+      "test_cases": [
+        {
+          "id": "IMPORT-001",
+          "name": "Importação bem-sucedida de arquivo válido",
+          "steps": [
+            "1. Abrir ImportDialog clicando em 'Importar Bookmarks'",
+            "2. Selecionar arquivo bookmarks.js válido com 50+ tweets",
+            "3. Confirmar import e aguardar conclusão",
+            "4. Verificar que todos os tweets foram adicionados ao BD"
+          ],
+          "expected": "Mensagem de sucesso com contagem de tweets importados (ex: '45 bookmarks importados com sucesso'). Listagem atualizada com novos bookmarks visíveis",
+          "risk": "high",
+          "automated": true,
+          "notes": "Critical path. Validar que importDialog.js consegue ler arquivo e parsear JSON"
+        },
+        {
+          "id": "IMPORT-002",
+          "name": "Rejeição de arquivo inválido (JSON malformado)",
+          "steps": [
+            "1. Criar arquivo com JSON inválido (sintaxe quebrada)",
+            "2. Tentar importar",
+            "3. Observar mensagem de erro"
+          ],
+          "expected": "Mensagem de erro legível: 'Erro ao fazer parse do JSON: ...' com detalhes do erro",
+          "risk": "high",
+          "automated": true,
+          "notes": "twitter-importer.js deve capturar JSON.parse() error e repassar ao usuário"
+        },
+        {
+          "id": "IMPORT-003",
+          "name": "Ignorar duplicatas (tweet_id duplicado)",
+          "steps": [
+            "1. Importar arquivo A com 30 tweets",
+            "2. Importar arquivo B com 20 dos mesmos tweets + 10 novos",
+            "3. Verificar contagem final"
+          ],
+          "expected": "Import B retorna '10 bookmarks importados' (apenas novos). Total final = 40. Sem duplicatas no BD",
+          "risk": "high",
+          "automated": true,
+          "notes": "Lógica existe em twitter-importer.js (getBookmarkById). Validar PRIMARY KEY constraint"
+        },
+        {
+          "id": "IMPORT-004",
+          "name": "Importação com dados incompletos (missing fields)",
+          "steps": [
+            "1. Criar arquivo com tweets faltando author.name ou full_text",
+            "2. Importar arquivo",
+            "3. Verificar que tweet foi inserido com fallback values"
+          ],
+          "expected": "Tweets inseridos com fallback: author_name='Unknown', author_handle='unknown', full_text=''. Sem erro",
+          "risk": "medium",
+          "automated": true,
+          "notes": "Código usa || 'Unknown' como fallback. Testar com author=null, full_text=undefined, etc"
+        },
+        {
+          "id": "IMPORT-005",
+          "name": "Importação de arquivo vazio ou apenas prefixo",
+          "steps": [
+            "1. Criar arquivo com apenas: window.YTD.bookmarks.part0 = []",
+            "2. Importar",
+            "3. Observar resultado"
+          ],
+          "expected": "Mensagem: '0 bookmarks importados com sucesso'. Sem erro no BD",
+          "risk": "medium",
+          "automated": true,
+          "notes": "twitter-importer.js checa Array.isArray(data) mas não valida se array vazio"
+        },
+        {
+          "id": "IMPORT-006",
+          "name": "Cancelamento de import dialog",
+          "steps": [
+            "1. Abrir ImportDialog",
+            "2. Clicar em botão fechar (X) sem selecionar arquivo",
+            "3. Verificar que dialog se fecha"
+          ],
+          "expected": "Dialog fecha, nenhum import iniciado, estado mantido",
+          "risk": "low",
+          "automated": false,
+          "notes": "Testar UX de cancelamento. ipc-handlers retorna {success: false, message: 'Cancelado'}"
+        },
+        {
+          "id": "IMPORT-007",
+          "name": "Importação de arquivo muito grande (1000+ tweets)",
+          "steps": [
+            "1. Preparar arquivo com 1500 tweets válidos",
+            "2. Importar e monitorar performance",
+            "3. Aguardar conclusão, verificar tempo e uso de memória"
+          ],
+          "expected": "Import completa em <5 segundos. Sem travamento de UI. Todos os tweets inseridos",
+          "risk": "high",
+          "automated": true,
+          "notes": "Possível bottleneck: loop em twitter-importer não usa transaction. Testar batching"
+        },
+        {
+          "id": "IMPORT-008",
+          "name": "Tratamento de erro: arquivo não encontrado após diálogo",
+          "steps": [
+            "1. Selecionar arquivo no diálogo",
+            "2. Deletar arquivo antes de confirmar import",
+            "3. Executar import"
+          ],
+          "expected": "Erro legível capturado: 'Erro ao ler arquivo' ou similar",
+          "risk": "medium",
+          "automated": false,
+          "notes": "fs.readFileSync pode lançar erro se arquivo for deletado entre diálogo e read"
+        }
+      ]
+    },
+    {
+      "feature": "CRUD de Tags",
+      "description": "Criar, ler, atualizar e deletar tags com cores personalizadas",
+      "test_cases": [
+        {
+          "id": "TAG-001",
+          "name": "Criar tag com nome único",
+          "steps": [
+            "1. Em TagSelector, digitar novo nome de tag (ex: 'Important')",
+            "2. Clicar botão 'Criar' ou pressionar Enter",
+            "3. Verificar que tag aparece na lista"
+          ],
+          "expected": "Tag criada com cor padrão (#6366f1). Tag aparece em TagSelector. Contagem de tags aumenta",
+          "risk": "medium",
+          "automated": true,
+          "notes": "Testar validação: nome vazio, nome duplicado (UNIQUE constraint)"
+        },
+        {
+          "id": "TAG-002",
+          "name": "Rejeição de nome duplicado",
+          "steps": [
+            "1. Criar tag 'Review'",
+            "2. Tentar criar outra tag 'Review'",
+            "3. Observar comportamento"
+          ],
+          "expected": "Erro exibido ao usuário: 'Tag já existe' ou erro do BD capturado",
+          "risk": "medium",
+          "automated": true,
+          "notes": "db.js createTag não valida duplicata antes de inserir. Contar com UNIQUE constraint"
+        },
+        {
+          "id": "TAG-003",
+          "name": "Atribuir tag a bookmark",
+          "steps": [
+            "1. Abrir TweetDetail de um bookmark",
+            "2. Clicar 'Editar' em Tags section",
+            "3. Selecionar 1+ tags e clicar 'Salvar'"
+          ],
+          "expected": "Tags aparecem no bookmark. Persistem ao fechar/reabrir detail",
+          "risk": "medium",
+          "automated": true,
+          "notes": "setBookmarkTags usa transaction implícita. Validar que old tags são deletadas"
+        },
+        {
+          "id": "TAG-004",
+          "name": "Remover tag de bookmark",
+          "steps": [
+            "1. Bookmark com 3 tags atribuídas",
+            "2. Abrir TweetDetail, clicar 'Editar Tags'",
+            "3. Desselecionar 1 tag, clicar 'Salvar'"
+          ],
+          "expected": "Tag removida do bookmark. Permane atribuído a outros bookmarks",
+          "risk": "medium",
+          "automated": true,
+          "notes": "Validar delete em bookmark_tags específico, não cascata em tags table"
+        },
+        {
+          "id": "TAG-005",
+          "name": "Deletar tag (cascata em bookmarks)",
+          "steps": [
+            "1. Criar tag 'Obsolete' com 10 bookmarks",
+            "2. Deletar tag (UI: ainda não existe, mas db.deleteTag() existe)",
+            "3. Verificar que bookmarks ainda existem, tag removida"
+          ],
+          "expected": "Tag deletada. Bookmarks não deletados. bookmark_tags limpas (ON DELETE CASCADE)",
+          "risk": "high",
+          "automated": true,
+          "notes": "UI não expõe delete de tag ainda. Testar DB diretamente"
+        },
+        {
+          "id": "TAG-006",
+          "name": "Cores customizadas de tags",
+          "steps": [
+            "1. Criar tag com cor padrão",
+            "2. Verificar que cor é exibida corretamente no UI",
+            "3. Tentar atualizar cor (if implemented)"
+          ],
+          "expected": "Cor exibida corretamente nos badges. Formato hex válido (#RRGGBB)",
+          "risk": "low",
+          "automated": false,
+          "notes": "Cor armazenada em tags.color. UI usa backgroundColor inline (Sidebar, TagBadge)"
+        },
+        {
+          "id": "TAG-007",
+          "name": "Criar tag inline em TweetDetail",
+          "steps": [
+            "1. Abrir TweetDetail",
+            "2. Clicar 'Editar Tags'",
+            "3. Em TagSelector, digitar novo nome e clicar 'Criar'",
+            "4. Nova tag aparece e é selecionada"
+          ],
+          "expected": "Tag criada e imediatamente aplicada ao bookmark. Visível em Sidebar",
+          "risk": "medium",
+          "automated": true,
+          "notes": "TagSelector.handleCreateTag recarrega tags com loadTags(). Testar fluxo"
+        },
+        {
+          "id": "TAG-008",
+          "name": "Sincronização de tags em sidebar e detail",
+          "steps": [
+            "1. Criar nova tag enquanto detail está aberto",
+            "2. Fechar detail, verificar sidebar",
+            "3. Reabrir outro bookmark, tentar usar tag criada"
+          ],
+          "expected": "Tag visível em sidebar. Disponível em todo o app",
+          "risk": "medium",
+          "automated": true,
+          "notes": "useAppStore.loadTags() deve ser chamado após criar tag"
+        }
+      ]
+    },
+    {
+      "feature": "Pesquisa e Filtro (FTS5 + Tag Filter)",
+      "description": "Full-text search + filtro por tag + filtro por autor",
+      "test_cases": [
+        {
+          "id": "SEARCH-001",
+          "name": "Busca full-text por palavra-chave",
+          "steps": [
+            "1. Digitar palavra-chave na SearchBar (ex: 'javascript')",
+            "2. Verificar que lista de bookmarks filtra em tempo real",
+            "3. Limpar busca e verificar retorno ao estado anterior"
+          ],
+          "expected": "Apenas bookmarks com 'javascript' no full_text, author_name ou author_handle aparecem. Busca é case-insensitive",
+          "risk": "medium",
+          "automated": true,
+          "notes": "Usa FTS5 com MATCH. Testar operadores FTS5: AND, OR, -exclude"
+        },
+        {
+          "id": "SEARCH-002",
+          "name": "Busca vazia retorna todos",
+          "steps": [
+            "1. Com bookmarks carregados, limpar searchQuery",
+            "2. Verificar lista"
+          ],
+          "expected": "Todos os bookmarks retornam (ou filtrados por tag se selecionado)",
+          "risk": "low",
+          "automated": true,
+          "notes": "db.js checa if(search) antes de aplicar FTS5"
+        },
+        {
+          "id": "SEARCH-003",
+          "name": "Filtro por tag",
+          "steps": [
+            "1. Clicar tag no sidebar (ex: 'Important' com 5 bookmarks)",
+            "2. Verificar que apenas bookmarks com essa tag aparecem"
+          ],
+          "expected": "5 bookmarks aparece. Searchbar limpo (não combina por padrão?)",
+          "risk": "medium",
+          "automated": true,
+          "notes": "App.jsx loadBookmarks depende de selectedTag. Verificar lógica de combinação tag+search"
+        },
+        {
+          "id": "SEARCH-004",
+          "name": "Combinação: tag + busca",
+          "steps": [
+            "1. Selecionar tag 'Important'",
+            "2. Digitar 'javascript' na busca",
+            "3. Verificar resultado: bookmarks com 'javascript' AND tagged 'Important'"
+          ],
+          "expected": "Filtra por ambas as condições",
+          "risk": "medium",
+          "automated": true,
+          "notes": "db.getBookmarks() aplica ambos os filtros com AND"
+        },
+        {
+          "id": "SEARCH-005",
+          "name": "Busca por autor (author_handle)",
+          "steps": [
+            "1. Usar filtro author: '@elonmusk'",
+            "2. Verificar que apenas tweets desse author aparecem"
+          ],
+          "expected": "Apenas bookmarks com author_handle ou author_name contendo 'elonmusk'",
+          "risk": "low",
+          "automated": true,
+          "notes": "Suportado em db.getBookmarks({author: '...'}). Não exposto em UI atual"
+        },
+        {
+          "id": "SEARCH-006",
+          "name": "Caracteres especiais em busca",
+          "steps": [
+            "1. Buscar: '@mention #hashtag'",
+            "2. Buscar: 'quote\"marks'",
+            "3. Buscar: '(parentheses)'"
+          ],
+          "expected": "Tratados corretamente ou error mensagem legível",
+          "risk": "medium",
+          "automated": true,
+          "notes": "FTS5 pode interpretar alguns caracteres como operadores. Testar escape"
+        },
+        {
+          "id": "SEARCH-007",
+          "name": "Performance: busca em 1000+ bookmarks",
+          "steps": [
+            "1. Importar 1000+ bookmarks",
+            "2. Executar busca com palavra comum",
+            "3. Medir tempo de resposta"
+          ],
+          "expected": "Resultado em <1 segundo. UI responsiva",
+          "risk": "high",
+          "automated": true,
+          "notes": "FTS5 deve estar indexado. Verificar EXPLAIN QUERY PLAN"
+        },
+        {
+          "id": "SEARCH-008",
+          "name": "Paginação/Lazy Loading",
+          "steps": [
+            "1. Carregar página com 20 bookmarks (limit padrão)",
+            "2. Scroll para baixo, verificar carregamento de próxima página"
+          ],
+          "expected": "Adiciona mais 20 bookmarks (offset 20). Não recarrega os anteriores",
+          "risk": "medium",
+          "automated": false,
+          "notes": "db.getBookmarks usa limit=20, offset=0. Scroll não implementado em BookmarkList"
+        }
+      ]
+    },
+    {
+      "feature": "Gerenciamento de Notas Pessoais",
+      "description": "Create/read/update/delete notas por bookmark",
+      "test_cases": [
+        {
+          "id": "NOTE-001",
+          "name": "Criar nota para bookmark",
+          "steps": [
+            "1. Abrir TweetDetail",
+            "2. Clicar 'Editar' em 'Notas Pessoais'",
+            "3. Digitar nota e clicar 'Salvar'"
+          ],
+          "expected": "Nota salva. Textarea desaparece, nota exibida em background cinza",
+          "risk": "low",
+          "automated": true,
+          "notes": "Usa upsertNote (INSERT ou UPDATE). Validar created_at e updated_at"
+        },
+        {
+          "id": "NOTE-002",
+          "name": "Editar nota existente",
+          "steps": [
+            "1. Bookmark com nota existente",
+            "2. Clicar 'Editar', modificar texto",
+            "3. Clicar 'Salvar'"
+          ],
+          "expected": "Nota atualizada. updated_at timestamp muda. created_at permanece",
+          "risk": "low",
+          "automated": true,
+          "notes": "upsertNote UPDATE deve atualizar apenas updated_at, não created_at"
+        },
+        {
+          "id": "NOTE-003",
+          "name": "Notas com formatação (quebras de linha, emojis)",
+          "steps": [
+            "1. Criar nota com: 'Line 1\\nLine 2' e '🔥 emoji'",
+            "2. Salvar e verificar display"
+          ],
+          "expected": "Quebras de linha preservadas (textarea com whitespace-pre-wrap). Emoji exibido",
+          "risk": "low",
+          "automated": true,
+          "notes": "TweetDetail usa whitespace-pre-wrap no display. Validar no DB"
+        },
+        {
+          "id": "NOTE-004",
+          "name": "Deletar nota",
+          "steps": [
+            "1. Bookmark com nota",
+            "2. Clicar 'Editar', limpar texto e clicar 'Salvar'",
+            "3. Verificar resultado"
+          ],
+          "expected": "Nota deletada ou vazia. Display mostra 'Nenhuma nota' (gray italic text)",
+          "risk": "low",
+          "automated": true,
+          "notes": "Código salva string vazia. Validar se db.upsertNote('') funciona"
+        },
+        {
+          "id": "NOTE-005",
+          "name": "Nota persistente ao fechar/reabrir",
+          "steps": [
+            "1. Criar nota para bookmark A",
+            "2. Clicar outro bookmark",
+            "3. Voltar para bookmark A"
+          ],
+          "expected": "Nota persistente. Carregada da DB ao reabrir",
+          "risk": "low",
+          "automated": true,
+          "notes": "TweetDetail.loadNote() executa ao montar. Validar query"
+        },
+        {
+          "id": "NOTE-006",
+          "name": "Múltiplas notas por bookmark (se aplicável)",
+          "steps": [
+            "1. Verificar schema: uma nota por bookmark ou histórico?"
+          ],
+          "expected": "Schema: uma nota por bookmark (com updated_at). Histórico não suportado",
+          "risk": "low",
+          "automated": false,
+          "notes": "db.notes.bookmark_id sem UNIQUE. Se múltiplas, getNote retorna últimas com LIMIT 1"
+        },
+        {
+          "id": "NOTE-007",
+          "name": "Cancelar edição de nota",
+          "steps": [
+            "1. Abrir edição, digitar texto",
+            "2. Clicar 'Cancelar'",
+            "3. Verificar que texto anterior é mantido"
+          ],
+          "expected": "Edição cancelada, nota anterior exibida",
+          "risk": "low",
+          "automated": false,
+          "notes": "TweetDetail.handleCancel restaura nota anterior. Validar estado"
+        }
+      ]
+    },
+    {
+      "feature": "Exclusão de Bookmarks",
+      "description": "Deletar bookmarks com cascata em tags e notas",
+      "test_cases": [
+        {
+          "id": "DELETE-001",
+          "name": "Deletar bookmark com confirmação",
+          "steps": [
+            "1. Abrir TweetDetail",
+            "2. Clicar 'Deletar Bookmark' vermelho",
+            "3. Confirmar em window.confirm()"
+          ],
+          "expected": "Bookmark deletado. Detail fecha. Listagem refresca sem o bookmark",
+          "risk": "high",
+          "automated": true,
+          "notes": "Operação destrutiva. Validar que cascata funciona corretamente"
+        },
+        {
+          "id": "DELETE-002",
+          "name": "Cancelar delete no confirm dialog",
+          "steps": [
+            "1. Abrir TweetDetail",
+            "2. Clicar 'Deletar Bookmark'",
+            "3. Clicar 'Cancelar' no confirm"
+          ],
+          "expected": "Bookmark não deletado. Detail permanece aberto",
+          "risk": "low",
+          "automated": false,
+          "notes": "window.confirm() nativo. Validar que deleteBookmark não é chamado"
+        },
+        {
+          "id": "DELETE-003",
+          "name": "Cascata: deletar bookmark remove suas tags (junction)",
+          "steps": [
+            "1. Bookmark com 3 tags",
+            "2. Deletar bookmark",
+            "3. Verificar que bookmark_tags foi limpo"
+          ],
+          "expected": "Registros em bookmark_tags com esse bookmark_id são deletados. Tags permanecem",
+          "risk": "high",
+          "automated": true,
+          "notes": "Schema: ON DELETE CASCADE. Validar no DB"
+        },
+        {
+          "id": "DELETE-004",
+          "name": "Cascata: deletar bookmark remove sua nota",
+          "steps": [
+            "1. Bookmark com nota",
+            "2. Deletar bookmark",
+            "3. Verificar que nota foi deletada"
+          ],
+          "expected": "Nota deletada (ON DELETE CASCADE)",
+          "risk": "high",
+          "automated": true,
+          "notes": "Validar cascade no schema notes.bookmark_id"
+        },
+        {
+          "id": "DELETE-005",
+          "name": "Deletar bookmark remove de FTS5",
+          "steps": [
+            "1. Bookmark com texto único (ex: 'XYZABC123')",
+            "2. Buscar por essa palavra, verificar que aparece",
+            "3. Deletar bookmark",
+            "4. Buscar novamente"
+          ],
+          "expected": "Bookmark não aparece mais na busca",
+          "risk": "high",
+          "automated": true,
+          "notes": "Trigger bookmarks_ad deve remover de FTS5. Testar"
+        },
+        {
+          "id": "DELETE-006",
+          "name": "Delete de múltiplos bookmarks (massa)",
+          "steps": [
+            "1. Importar 100 bookmarks",
+            "2. Deletar 20 em sequência",
+            "3. Monitorar performance e integridade"
+          ],
+          "expected": "Todos deletados corretamente. DB consistente",
+          "risk": "medium",
+          "automated": true,
+          "notes": "Testar lock/transaction conflicts"
+        }
+      ]
+    },
+    {
+      "feature": "UI Responsiva e Performance",
+      "description": "Renderização, responsiveness, e performance com 1000+ bookmarks",
+      "test_cases": [
+        {
+          "id": "UI-001",
+          "name": "Renderização correta com 0 bookmarks",
+          "steps": [
+            "1. Iniciar app com BD vazio",
+            "2. Verificar que UI exibe 'Nenhum bookmark encontrado'"
+          ],
+          "expected": "Mensagem legível em cinza. Sem erro",
+          "risk": "low",
+          "automated": false,
+          "notes": "BookmarkList trata bookmarks.length === 0"
+        },
+        {
+          "id": "UI-002",
+          "name": "Renderização com 20-100 bookmarks",
+          "steps": [
+            "1. Carregar 50 bookmarks",
+            "2. Verificar que todos aparecem",
+            "3. Scroll, verificar smoothness"
+          ],
+          "expected": "Cards renderizados corretamente. Scroll smooth. Sem lag",
+          "risk": "medium",
+          "automated": false,
+          "notes": "BookmarkList renderiza array direto. Sem virtualization"
+        },
+        {
+          "id": "UI-003",
+          "name": "Performance: 1000+ bookmarks",
+          "steps": [
+            "1. Importar 1000+ bookmarks",
+            "2. Abrir app, medir tempo até renderização completa",
+            "3. Scroll, verificar FPS",
+            "4. Buscar, medir latência"
+          ],
+          "expected": "Renderização inicial <3s. Scroll >30 FPS. Busca <1s",
+          "risk": "high",
+          "automated": true,
+          "notes": "BOTTLENECK: BookmarkList não usa virtualization. Pode ter milhões de DOM nodes"
+        },
+        {
+          "id": "UI-004",
+          "name": "Responsive design: Desktop 1920x1080",
+          "steps": [
+            "1. Abrir em monitor 1920x1080",
+            "2. Verificar layout (sidebar, main, detail pane)"
+          ],
+          "expected": "Sidebar 256px (w-64), main area flex-1, detail modal centrado",
+          "risk": "low",
+          "automated": false,
+          "notes": "Tailwind classes: flex, w-64, flex-1, etc"
+        },
+        {
+          "id": "UI-005",
+          "name": "Responsive design: Mobile/Tablet 768px",
+          "steps": [
+            "1. Redimensionar para 768px",
+            "2. Verificar if sidebar collapses ou scrolls"
+          ],
+          "expected": "Sidebar ainda visível (256px = 33%). ScrollBar se necessário",
+          "risk": "medium",
+          "automated": false,
+          "notes": "Sem media queries implementadas. Sidebar pode desaparecer"
+        },
+        {
+          "id": "UI-006",
+          "name": "Avatar images broken link",
+          "steps": [
+            "1. Bookmark com URL de avatar inválido",
+            "2. Abrir detail, verificar fallback"
+          ],
+          "expected": "Sem placeholder, mas sem erro. Alt text exibido ou espaço vazio",
+          "risk": "low",
+          "automated": false,
+          "notes": "img tags têm alt text. Sem fallback image"
+        },
+        {
+          "id": "UI-007",
+          "name": "Truncamento de texto longo em card",
+          "steps": [
+            "1. Bookmark com texto 500+ caracteres",
+            "2. Verificar se é truncado em card view"
+          ],
+          "expected": "Texto truncado com '...' (line-clamp-3). Full text em detail",
+          "risk": "low",
+          "automated": false,
+          "notes": "BookmarkCard usa line-clamp-3 em <p>"
+        },
+        {
+          "id": "UI-008",
+          "name": "Modal detail: scrolling conteúdo longo",
+          "steps": [
+            "1. Bookmark com nota 2000+ caracteres",
+            "2. Abrir detail",
+            "3. Scroll dentro da modal"
+          ],
+          "expected": "Modal scrollável internamente. Sem overflow de conteúdo",
+          "risk": "medium",
+          "automated": false,
+          "notes": "TweetDetail tem max-h-96 e overflow-y-auto em outer div"
+        }
+      ]
+    },
+    {
+      "feature": "Integração Electron + IPC",
+      "description": "Comunicação entre renderer e main process",
+      "test_cases": [
+        {
+          "id": "IPC-001",
+          "name": "IPC preload.js e window.api disponível",
+          "steps": [
+            "1. Abrir DevTools (F12)",
+            "2. Console: console.log(window.api)",
+            "3. Verificar que API methods existem"
+          ],
+          "expected": "window.api retorna objeto com métodos: getBookmarks, deleteBookmark, importBookmarks, etc",
+          "risk": "high",
+          "automated": true,
+          "notes": "Crítico para funcionar. Validar preload.js está registrado corretamente"
+        },
+        {
+          "id": "IPC-002",
+          "name": "Erro no IPC é capturado e exibido",
+          "steps": [
+            "1. Simular erro no main process (ex: DB locked)",
+            "2. Tentar operação (import, delete, etc)",
+            "3. Observar que erro é propagado ao renderer"
+          ],
+          "expected": "Erro console.log() no renderer. Mensagem legível ao usuário",
+          "risk": "medium",
+          "automated": true,
+          "notes": "ipc-handlers.js não têm try-catch em vários lugares"
+        },
+        {
+          "id": "IPC-003",
+          "name": "Context isolation está ativo",
+          "steps": [
+            "1. DevTools: console.log(window.nodeRequire)",
+            "2. Verificar se undefined ou existente"
+          ],
+          "expected": "window.nodeRequire = undefined. Context isolation ativo",
+          "risk": "critical",
+          "automated": true,
+          "notes": "Security: contextIsolation: true em BrowserWindow. Validar config"
+        },
+        {
+          "id": "IPC-004",
+          "name": "Node integration desativado",
+          "steps": [
+            "1. DevTools: console.log(require)",
+            "2. Verificar se throw error"
+          ],
+          "expected": "require is not defined. Node integration OFF",
+          "risk": "critical",
+          "automated": true,
+          "notes": "Security: nodeIntegration: false em BrowserWindow"
+        }
+      ]
+    }
+  ],
+
+  "bugs_found": [
+    {
+      "id": "BUG-001",
+      "component": "twitter-importer.js",
+      "severity": "high",
+      "title": "Sem transação na importação em lote",
+      "description": "Loop em importBookmarks() faz INSERT um por um. Se processo falhar no meio, metade dos bookmarks fica importada (inconsistência)",
+      "reproduction": "1. Criar arquivo com 50 bookmarks\n2. Forçar erro no meio (ex: DB lock)\n3. Observar que alguns foram inseridos e outros não",
+      "impact": "BD em estado inconsistente. Difícil recuperação",
+      "suggested_fix": "Envolver loop em db.transaction() do better-sqlite3",
+      "testable": true
+    },
+    {
+      "id": "BUG-002",
+      "component": "db.js::getBookmarks()",
+      "severity": "medium",
+      "title": "FTS5 MATCH sem validação de sintaxe",
+      "description": "Busca envia string direto para FTS5 MATCH sem escapar. Caracteres especiais podem quebrar query (:*;\")",
+      "reproduction": "1. SearchBar: digitar '+' ou ':'\n2. Observar erro ou comportamento inesperado",
+      "impact": "Erro SQL ou resultados incorretos. Usuário confuso",
+      "suggested_fix": "Sanitizar search string ou usar prepared statement com bindings (já feito, mas não valida sintaxe)",
+      "testable": true
+    },
+    {
+      "id": "BUG-003",
+      "component": "BookmarkList.jsx",
+      "severity": "high",
+      "title": "Sem virtualization para 1000+ bookmarks",
+      "description": "Renderiza todos os bookmarks como DOM nodes. Com 1000 cards, cria milhões de elementos DOM",
+      "reproduction": "1. Importar 1000+ bookmarks\n2. Abrir app\n3. Monitorar DevTools: Performance > thousands of DOM nodes",
+      "impact": "Performance crítica. App freezes. 60% CPU utilization",
+      "suggested_fix": "Usar react-window ou similar para virtualization",
+      "testable": true
+    },
+    {
+      "id": "BUG-004",
+      "component": "BookmarkList.jsx",
+      "severity": "high",
+      "title": "Carregamento de tags em loop sem memoização",
+      "description": "useEffect carrega tags para CADA bookmark quando lista muda. Com 50 bookmarks = 50 IPC calls sequenciais",
+      "reproduction": "1. Importar 100 bookmarks\n2. DevTools: Network tab, contar IPC calls\n3. Observar latência",
+      "impact": "Performance lenta em primeiras renderizações. Múltiplos IPC calls",
+      "suggested_fix": "Batch load: fetch 10 at a time ou usar single IPC que retorna todos",
+      "testable": true
+    },
+    {
+      "id": "BUG-005",
+      "component": "AppStore.js::loadBookmarks()",
+      "severity": "medium",
+      "title": "Sem debounce em searchQuery",
+      "description": "Cada keystroke dispara loadBookmarks(). Com busca FTS5 em 1000 bookmarks, causa lag",
+      "reproduction": "1. Importar 500 bookmarks\n2. SearchBar: digitar rapidamente (ex: 'javascript')\n3. Observe: FTS5 executa 9x (para cada letra)",
+      "impact": "CPU spike. Lag perceptível ao usuário",
+      "suggested_fix": "Adicionar debounce(loadBookmarks, 300ms) no useEffect de search",
+      "testable": true
+    },
+    {
+      "id": "BUG-006",
+      "component": "db.js::createTag()",
+      "severity": "medium",
+      "title": "Sem validação de nome vazio",
+      "description": "Usuário pode criar tag com nome vazio ou apenas whitespace",
+      "reproduction": "1. TagSelector: digitar apenas espaços\n2. Clicar 'Criar'\n3. Tag vazia criada",
+      "impact": "UX ruim. Tags inúteis no sidebar",
+      "suggested_fix": "Validar name.trim().length > 0 antes de createTag",
+      "testable": true
+    },
+    {
+      "id": "BUG-007",
+      "component": "ipc-handlers.js::registerIpcHandlers()",
+      "severity": "medium",
+      "title": "Sem try-catch em vários handlers",
+      "description": "Muitos handlers (tags:create, notes:upsert, etc) não têm try-catch. Exceções não são capturadas",
+      "reproduction": "1. Injetar erro no DB\n2. Executar operação\n3. App pode crash ou erro não é propagado",
+      "impact": "Bad error handling. Usuário não sabe o que aconteceu",
+      "suggested_fix": "Envolver cada handler em try-catch e retornar {success: false, error: ...}",
+      "testable": true
+    },
+    {
+      "id": "BUG-008",
+      "component": "TweetDetail.jsx",
+      "severity": "low",
+      "title": "Sem validação de confirmação delete com duplo-clique",
+      "description": "window.confirm() é padrão do browser. Usuário pode clicar por acidente",
+      "reproduction": "1. Abrir TweetDetail\n2. Clicar botão delete\n3. Confirmar acidentalmente",
+      "impact": "Bookmark deletado sem recuperação fácil",
+      "suggested_fix": "Custom confirmation dialog ou undo feature",
+      "testable": false
+    },
+    {
+      "id": "BUG-009",
+      "component": "db.js::initDb()",
+      "severity": "medium",
+      "title": "Sem validação de schema version/migration",
+      "description": "Se schema mudar em update futuro, old DB fica incompatível. Sem migration path",
+      "reproduction": "1. Usar app v1.0\n2. Atualizar para v2.0 com schema mudado\n3. App quebra ou falha silenciosamente",
+      "impact": "Atualização de versão quebra DB. Perda de dados",
+      "suggested_fix": "Adicionar schema version table e migration scripts",
+      "testable": true
+    },
+    {
+      "id": "BUG-010",
+      "component": "Main/index.js",
+      "severity": "low",
+      "title": "DevTools sempre aberto em dev mode",
+      "description": "mainWindow.webContents.openDevTools() executado em modo dev. Útil, mas não configurável",
+      "reproduction": "1. npm run dev\n2. DevTools abre automaticamente (reduz espaço de tela)",
+      "impact": "UX: menos espaço para testar UI",
+      "suggested_fix": "Apenas abrir se env var DEBUG=true",
+      "testable": false
+    },
+    {
+      "id": "BUG-011",
+      "component": "AppStore.js",
+      "severity": "medium",
+      "title": "Estado de notificação de erro persiste após fechar ImportDialog",
+      "description": "Se import falha com erro, mensagem fica em state. Reabrir dialog mostra erro antigo",
+      "reproduction": "1. Import dialog\n2. Selecionar arquivo inválido\n3. Error message aparece\n4. Fechar dialog\n5. Reabrir: erro antigo ainda visível",
+      "impact": "Confusão do usuário. Mensagem obsoleta",
+      "suggested_fix": "Limpar error/message ao abrir/fechar dialog",
+      "testable": false
+    },
+    {
+      "id": "BUG-012",
+      "component": "twitter-importer.js",
+      "severity": "high",
+      "title": "Parsing do URL do tweet pode quebrar com screen_name vazio",
+      "description": "Usa tweet.user?.screen_name sem validação. Se undefined/null, URL fica inválida: 'https://twitter.com/null/status/...'",
+      "reproduction": "1. Arquivo com tweet.user.screen_name = null\n2. Importar\n3. Verificar URL do bookmark",
+      "impact": "Link 'Ver no Twitter' não funciona",
+      "suggested_fix": "Validar screen_name não vazio antes de construir URL",
+      "testable": true
+    }
+  ],
+
+  "designer_feedback": {
+    "summary": "Baseado em analise do IMPLEMENTATION_STATUS.md e código, todas as 6 fases foram implementadas. Designer propôs melhorias em UI/UX que são testáveis?",
+    "testability_validation": [
+      {
+        "feature": "Sidebar colapsível",
+        "status": "NÃO IMPLEMENTADO",
+        "testable": true,
+        "notes": "Responsive design mencionado mas sem media queries. Sidebar é fixed w-64. Testar redimensionamento"
+      },
+      {
+        "feature": "Dark mode",
+        "status": "NÃO IMPLEMENTADO",
+        "testable": true,
+        "notes": "Está no backlog. Seria testável com theme toggle em AppStore + Tailwind dark: classes"
+      },
+      {
+        "feature": "Undo/Redo delete",
+        "status": "NÃO IMPLEMENTADO",
+        "testable": true,
+        "notes": "Delete é permanent. Testar seria adicionar 'toast' com botão Desfazer e soft-delete em DB"
+      },
+      {
+        "feature": "Bulk operations (multi-select tags)",
+        "status": "NÃO IMPLEMENTADO",
+        "testable": true,
+        "notes": "UI não tem checkbox em BookmarkCard. Seria testável com CTRL+Click ou checkbox + 'Aplicar tags'"
+      },
+      {
+        "feature": "Sync com cloud/backup",
+        "status": "NÃO IMPLEMENTADO",
+        "testable": true,
+        "notes": "Está em backlog. DB está em %AppData%. Seria testável com manual export/import ou integração AWS S3"
+      },
+      {
+        "feature": "Paginação/Infinite scroll",
+        "status": "PARCIALMENTE IMPLEMENTADO",
+        "testable": true,
+        "notes": "DB supports limit/offset, mas UI não pagina. BookmarkList renderiza tudo. Seria testável com scroll listener + setOffset"
+      }
+    ]
+  },
+
+  "test_strategy": {
+    "manual_tests": [
+      "UI responsiveness em diferentes resoluções",
+      "Validação de avatars (quebrados, redirection)",
+      "Usabilidade de delete confirmation",
+      "Performance visual (scroll, hover effects)",
+      "Fluxo de import dialog de ponta a ponta"
+    ],
+    "automated_tests": [
+      "Unit: db.js functions (CRUD, FTS5)",
+      "Unit: twitter-importer.js parsing",
+      "Integration: IPC handlers end-to-end",
+      "E2E: Import → Filter → Detail → Delete flow",
+      "Performance: 1000+ bookmarks load time",
+      "Performance: Search latency (FTS5)",
+      "DB integrity: Cascading deletes"
+    ],
+    "recommended_tools": [
+      "Jest (unit tests)",
+      "Playwright ou Spectron (E2E Electron)",
+      "Vitest (fast unit testing)",
+      "Mock Service Worker (IPC mocking)",
+      "Lighthouse/DevTools (performance profiling)"
+    ]
+  },
+
+  "critical_paths": {
+    "happy_path_import": [
+      "Click 'Importar Bookmarks'",
+      "Select valid bookmarks.js file",
+      "Confirm import",
+      "Bookmarks appear in list",
+      "Tags load for each bookmark",
+      "Search/filter works on new bookmarks"
+    ],
+    "happy_path_tag_and_search": [
+      "Create new tag in TagSelector",
+      "Assign tag to bookmark",
+      "Filter by tag in sidebar",
+      "Combine filter with search",
+      "Verify correct subset appears"
+    ],
+    "happy_path_detail_and_notes": [
+      "Click bookmark card",
+      "Detail panel opens",
+      "Load existing note or blank",
+      "Edit and save note",
+      "Assign/remove tags",
+      "Delete bookmark with confirmation"
+    ]
+  }
+}

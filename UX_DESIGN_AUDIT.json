@@ -1,0 +1,519 @@
+{
+  "audit_summary": "Auditoria de UX/Design da aplicação Twitter Bookmarks Organizer (Electron + React + Tailwind v4). Análise profunda de 8 problemas críticos identificados que afetam: performance (N+1 queries), feedback visual (ausência de loading states), acessibilidade (contrast ratio, aria-labels), responsividade (sidebar fixa), UX de interação (debouncing, modais). Propõe 12 melhorias priorizadas por impacto/esforço com especificações Tailwind concretas e componentes reutilizáveis.",
+
+  "improvement_priority": [
+    {
+      "id": 1,
+      "title": "Substituir window.confirm() por Modal Nativo de Confirmação",
+      "category": "interaction",
+      "impact": "high",
+      "effort": "2h",
+      "problem": "TweetDetail.jsx (linha 51) usa window.confirm() que é feio, não-nativo em Electron, quebra a arquitetura de design e não oferece feedback visual adequado.",
+      "solution": "Criar componente ConfirmDialog.jsx reutilizável com estilos Tailwind, animação de fade-in/out, dois botões (Cancelar em cinza, Confirmar em vermelho). Integrar em TweetDetail para deletar bookmarks. Adicionar transition-opacity e transição suave de aparecimento.",
+      "sketch": "┌─────────────────────────────────┐\n│ Confirmação                    ✕ │\n├─────────────────────────────────┤\n│                                 │\n│  Tem certeza que deseja deletar  │\n│  este bookmark?                 │\n│                                 │\n│  Esta ação é irreversível.      │\n│                                 │\n│  [Cancelar]  [Deletar Mesmo]    │\n│                                 │\n└─────────────────────────────────┘",
+      "implementation_details": {
+        "component": "src/renderer/components/ConfirmDialog.jsx",
+        "props": {
+          "isOpen": "boolean",
+          "title": "string",
+          "message": "string",
+          "confirmText": "string (default: 'Confirmar')",
+          "cancelText": "string (default: 'Cancelar')",
+          "isDangerous": "boolean (default: false)",
+          "onConfirm": "() => Promise<void>",
+          "onCancel": "() => void",
+          "isLoading": "boolean (default: false)"
+        },
+        "tailwind_classes": {
+          "modal_overlay": "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 transition-opacity duration-200",
+          "modal_content": "bg-white rounded-lg max-w-sm w-full mx-4 p-6 shadow-lg animate-fadeIn",
+          "button_dangerous": "bg-red-500 text-white py-2 px-4 rounded-lg font-semibold hover:bg-red-600 disabled:opacity-50 transition-colors",
+          "button_cancel": "bg-gray-200 text-gray-900 py-2 px-4 rounded-lg font-semibold hover:bg-gray-300 transition-colors"
+        }
+      },
+      "dependencies": [],
+      "testing_checklist": [
+        "Modal aparece com animação ao chamar onConfirm",
+        "Botão Cancelar fecha modal sem executar ação",
+        "Botão Confirmar executa callback e mostra loading state",
+        "Escape key fecha modal",
+        "Click fora do modal não fecha (backdrop não-clicável)",
+        "Cores diferenciam ações: vermelho para destructive, cinza para cancel"
+      ]
+    },
+
+    {
+      "id": 2,
+      "title": "Implementar Debouncing de Search com Indicador Visual",
+      "category": "interaction",
+      "impact": "high",
+      "effort": "2h",
+      "problem": "SearchBar.jsx (linha 14) executa onChange a cada keystroke, disparando loadBookmarks() imediatamente. Sem debouncing, dispara N queries rápidas. Sem feedback visual sobre estado da busca (pendente, processado).",
+      "solution": "Adicionar debounce de 300ms usando efeito customizado (useEffect com setTimeout). Mostrar spinner ou badge 'Buscando...' enquanto busca está em andamento. Indicador visual de sucesso/erro com transição suave.",
+      "sketch": "┌──────────────────────────────────────┐\n│ 🔍 Pesquisar bookmarks...       ⏳ │\n└──────────────────────────────────────┘\n        (mostra spinner enquanto busca)\n\n┌──────────────────────────────────────┐\n│ 🔍 react                           ✓ │\n└──────────────────────────────────────┘\n    (12 resultados encontrados)",
+      "implementation_details": {
+        "component": "src/renderer/components/SearchBar.jsx",
+        "changes": [
+          "Adicionar hook useDebounce customizado em src/renderer/hooks/useDebounce.js",
+          "Adicionar isSearching state ao AppStore (useAppStore)",
+          "Exibir spinner (Loader icon) durante busca",
+          "Exibir contagem de resultados após busca completar"
+        ],
+        "code_hooks": {
+          "useDebounce": "export function useDebounce(value, delay = 300) {\n  const [debouncedValue, setDebouncedValue] = useState(value);\n  useEffect(() => {\n    const handler = setTimeout(() => {\n      setDebouncedValue(value);\n    }, delay);\n    return () => clearTimeout(handler);\n  }, [value, delay]);\n  return debouncedValue;\n}"
+        },
+        "tailwind_classes": {
+          "search_container": "relative",
+          "spinner": "absolute right-3 top-3 animate-spin text-gray-400",
+          "success_badge": "absolute right-10 top-3 text-green-600 text-sm font-semibold"
+        }
+      },
+      "dependencies": ["AppStore.isSearching"],
+      "testing_checklist": [
+        "Digitar rápido não dispara múltiplas requisições",
+        "Spinner aparece enquanto busca está em andamento",
+        "Resultados atualizam após 300ms de inatividade",
+        "Contador de resultados é exibido ao lado do input",
+        "Backspace/clear reseta indicador visual",
+        "Performance: máximo 1 query a cada 300ms"
+      ]
+    },
+
+    {
+      "id": 3,
+      "title": "Adicionar Loading States e Skeleton Loaders",
+      "category": "visual",
+      "impact": "high",
+      "effort": "4h",
+      "problem": "BookmarkList.jsx mostra apenas 'Carregando...' genérico durante busca. Sem esqueleto visual (skeleton loaders) faz parecer que a app está pendurada. Modais desaparecem rápido (ImportDialog.jsx linha 25: setTimeout 1500ms), gerando sensação de bugado.",
+      "solution": "Criar componente BookmarkCardSkeleton.jsx que simula estrutura visual do card (gradiente animado). Usar ao isLoading. Aumentar duração de sucesso/erro em ImportDialog para 2500ms para ler mensagem. Adicionar efeito 'pulse' ao spinner.",
+      "sketch": "ANTES (sem skeleton):\n┌──────────────────────┐\n│ Carregando...        │\n└──────────────────────┘\n\nDEPOIS (com skeleton):\n┌──────────────────────┐\n│ ████████            │ ← shimmer effect\n│ ████████████        │\n│ ████████            │\n├──────────────────────┤\n│ ████████            │\n│ ████████████        │\n│ ████████            │\n└──────────────────────┘",
+      "implementation_details": {
+        "components": [
+          "src/renderer/components/BookmarkCardSkeleton.jsx",
+          "src/renderer/components/LoadingSpinner.jsx"
+        ],
+        "tailwind_classes": {
+          "skeleton_base": "animate-pulse bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 rounded-lg h-4",
+          "skeleton_avatar": "w-10 h-10 rounded-full bg-gray-300 animate-pulse",
+          "skeleton_text_line": "h-3 bg-gray-300 rounded animate-pulse",
+          "skeleton_text_line_wide": "h-4 bg-gray-300 rounded animate-pulse w-4/5",
+          "spinner": "animate-spin text-blue-500"
+        }
+      },
+      "dependencies": ["AppStore.isLoading"],
+      "testing_checklist": [
+        "Skeleton loaders aparecem ao iniciar busca",
+        "Efeito shimmer anima suavemente (duração ~1.5s)",
+        "Esqueleto desaparece quando dados carregam",
+        "ImportDialog mostra mensagem por 2.5s (legível)",
+        "Múltiplos skeletons carregam em paralelo (6-8 por página)",
+        "Loading spinner em SearchBar durante debounce"
+      ]
+    },
+
+    {
+      "id": 4,
+      "title": "Resolver N+1 Query de Tags em BookmarkList",
+      "category": "performance",
+      "impact": "high",
+      "effort": "1d",
+      "problem": "BookmarkList.jsx (linhas 10-26) faz loop para cada bookmark chamando window.api.getBookmarkTags(). Com 100+ bookmarks, são 100+ queries sequenciais. Bloqueia UI, causa lag visível.",
+      "solution": "Backend: Implementar endpoint getBookmarksTags(bookmarkIds[]) que retorna Map<bookmarkId, Tag[]>. Frontend: Chamar uma vez com todos IDs, mapear resultado. Alternativa: Cache tags no AppStore quando carrega bookmarks. Medir performance: deve carregar 100 bookmarks em <500ms.",
+      "sketch": "ANTES (N+1):\nGET /api/bookmarks → 10 bookmarks\nGET /api/bookmark/1/tags\nGET /api/bookmark/2/tags\nGET /api/bookmark/3/tags\n... (10 queries sequenciais) ❌\n\nDEPOIS (otimizado):\nGET /api/bookmarks → 10 bookmarks\nGET /api/bookmarksTags?ids=1,2,3,... → \n{\n  \"1\": [{id: 1, name: \"React\", color: \"#0066ff\"}],\n  \"2\": [{id: 2, name: \"TypeScript\", color: \"#3178c6\"}],\n  ...\n}\n(1 query otimizada) ✓",
+      "implementation_details": {
+        "backend_changes": {
+          "new_endpoint": "POST /api/bookmarksTags",
+          "request_body": "{\"bookmarkIds\": [1, 2, 3, ...]}",
+          "response_format": "{\"1\": [{...tags...}], \"2\": [{...tags...}], ...}"
+        },
+        "frontend_changes": {
+          "file": "src/renderer/components/BookmarkList.jsx",
+          "change": "Usar novo endpoint em useEffect, mapear resposta para setBookmarkTags()"
+        }
+      },
+      "dependencies": ["Backend API changes"],
+      "testing_checklist": [
+        "Carregamento de 100+ bookmarks em <500ms",
+        "Network tab mostra 1 query de tags, não N",
+        "Tags renderizam corretamente em todos cards",
+        "Performance monitor não mostra UI blocking",
+        "Teste com 1000 bookmarks: performance aceitável"
+      ]
+    },
+
+    {
+      "id": 5,
+      "title": "Implementar Scroll Suave e Overflow Handling em TweetDetail",
+      "category": "visual",
+      "impact": "medium",
+      "effort": "1h",
+      "problem": "TweetDetail.jsx (linha 66: max-h-96) corta conteúdo se notas/tags forem longas. Sem scroll smooth, conteúdo desaparece abruptamente. Scroll nativo é áspero em Electron.",
+      "solution": "Implementar scroll-behavior: smooth em CSS. Aumentar max-h para max-h-[calc(100vh-200px)] permitindo mais espaço. Adicionar padding-bottom para evitar corte final. Adicionar fade-out gradient no topo para indicar scroll.",
+      "sketch": "ANTES:\n┌────────────────────────┐\n│ Detalhes do Bookmark │\n├────────────────────────┤\n│ Tweet content here  │\n│                    │\n│ Tags: [React] [... │ ← cortado, não aparece resto\n│                    │\n└────────────────────────┘\n\nDEPOIS:\n┌────────────────────────┐\n│ Detalhes do Bookmark │\n├────────────────────────┤ ↑ fade-out gradient\n│ Tweet content here  │\n│                    │\n│ Tags: [React]      │\n│ [TypeScript]       │\n│                    │\n│ Notas: Lorem...    │\n│ Lorem...           │\n│ Lorem... (scrollable) │\n│                    │\n└────────────────────────┘",
+      "implementation_details": {
+        "file": "src/renderer/components/TweetDetail.jsx",
+        "changes": [
+          "Alterar max-h-96 para max-h-[calc(100vh-200px)]",
+          "Adicionar scroll-smooth ao .max-h container",
+          "Implementar gradient mask para fade-out effect"
+        ],
+        "tailwind_classes": {
+          "modal_content": "bg-white rounded-lg max-h-[calc(100vh-200px)] w-full overflow-y-auto scroll-smooth",
+          "fade_gradient": "bg-gradient-to-b from-white via-white to-transparent pointer-events-none absolute top-0 left-0 right-0 h-12"
+        }
+      },
+      "dependencies": [],
+      "testing_checklist": [
+        "Modal com conteúdo longo scrollável sem cortes",
+        "Scroll é suave e não áspero",
+        "Fade-out no topo indica que há conteúdo acima",
+        "Notas longas cabem completamente no viewport",
+        "Scroll funciona com keyboard (Tab + Setas)"
+      ]
+    },
+
+    {
+      "id": 6,
+      "title": "Melhorar Responsividade: Sidebar Colapsável em Telas Pequenas",
+      "category": "visual",
+      "impact": "medium",
+      "effort": "4h",
+      "problem": "Sidebar.jsx tem w-64 fixo. Em telas <1024px (laptops, tablets), ocupa 25% do espaço, deixando apenas 192px para conteúdo. Layout quebra em <768px. Sem opção de colapsar.",
+      "solution": "Implementar sidebar colapsável com hamburger menu. Em lg (1024px+): sidebar sempre visível. Em md (768px-1023px): sidebar colapsável. Em sm (<768px): drawer modal deslizante. Usar state isCollapsed no AppStore. Ícone hamburger animado (≡ → ✕).",
+      "sketch": "DESKTOP (lg: ≥1024px):\n┌─────────┬──────────────────────┐\n│ Tags    │ Bookmarks            │\n│ ≡≡≡≡≡  │ (lista completa)     │\n│ [All]   │                      │\n│ [React] │                      │\n│ [Vue]   │                      │\n└─────────┴──────────────────────┘\n\nTABLET (md: 768-1023px):\n┌──────────────────────────────┐\n│≡ Tags [React]              ✕ │ ← drawer flutuante\n├──────────────────────────────┤\n│ Bookmarks (full width)       │\n│ (lista completa, sidebar     │\n│  sobre conteúdo)             │\n└──────────────────────────────┘",
+      "implementation_details": {
+        "state": "useAppStore.isSidebarOpen (boolean)",
+        "components_affected": [
+          "src/renderer/App.jsx (grid layout)",
+          "src/renderer/components/Sidebar.jsx (responsive classes)",
+          "Novo: HamburgerButton.jsx"
+        ],
+        "tailwind_breakpoints": {
+          "layout": "flex lg:flex-row flex-col",
+          "sidebar": "w-64 lg:relative lg:w-64 lg:border-r md:fixed md:inset-y-0 md:left-0 md:z-40 md:transition-transform md:duration-300 md:transform md:translate-x-0 data-[closed]:md:-translate-x-full",
+          "overlay": "fixed inset-0 bg-black bg-opacity-50 lg:hidden md:block (only on mobile)"
+        }
+      },
+      "dependencies": ["AppStore.isSidebarOpen"],
+      "testing_checklist": [
+        "Desktop (lg): Sidebar sempre visível, não se move",
+        "Tablet (md): Hamburger menu togla sidebar drawer",
+        "Mobile (sm): Sidebar é modal deslizante com overlay",
+        "Hamburger ícone anima (≡ rotaciona para ✕)",
+        "Click no overlay fecha sidebar",
+        "Conteúdo ajusta corretamente em todos breakpoints",
+        "Performance: transição suave sem jank"
+      ]
+    },
+
+    {
+      "id": 7,
+      "title": "Aumentar Contrast Ratio e Adicionar aria-labels Completos",
+      "category": "accessibility",
+      "impact": "medium",
+      "effort": "2h",
+      "problem": "Texto cinzento (text-gray-500) em fundo branco falha WCAG AA (contrast <4.5:1). Botões Heart/Repeat2 em BookmarkCard não têm aria-label legível. Cor focus ring não tão visível.",
+      "solution": "Aumentar contraste: text-gray-600 (ou escurecer gray-500 com custom) em backgrounds claros. Adicionar aria-label='Listar bookmarks com N likes' a todos buttons/ícones. Aumentar focus ring (ring-2 para ring-4) com cor mais vibrante. Testar com aXe DevTools.",
+      "sketch": "ANTES:\n<button className=\"text-gray-500\">        ← contrast ~2.5\n  <Heart size={16} /> {like_count}\n</button>\n\nDEPOIS:\n<button \n  className=\"text-gray-700 focus:ring-4 focus:ring-blue-500\"\n  aria-label={`${like_count} likes. Clicar para filtrar bookmarks com muitos likes`}\n>\n  <Heart size={16} aria-hidden=\"true\" /> {like_count}\n</button>",
+      "implementation_details": {
+        "files_affected": [
+          "src/renderer/components/BookmarkCard.jsx",
+          "src/renderer/components/SearchBar.jsx",
+          "src/renderer/components/TweetDetail.jsx",
+          "src/renderer/index.css (custom text colors if needed)"
+        ],
+        "aria_labels": {
+          "heart_button": "aria-label=\"${bookmark.like_count} likes\"",
+          "retweet_button": "aria-label=\"${bookmark.retweet_count} retweets\"",
+          "external_link": "aria-label=\"Abrir tweet no Twitter em nova aba\"",
+          "search_input": "aria-label=\"Pesquisar bookmarks por autor, texto ou tags\"",
+          "close_button": "aria-label=\"Fechar modal de detalhes\""
+        },
+        "color_updates": {
+          "text_secondary": "from text-gray-500 to text-gray-700",
+          "focus_ring": "from focus:ring-2 to focus:ring-4 focus:ring-blue-500"
+        }
+      },
+      "dependencies": [],
+      "testing_checklist": [
+        "aXe DevTools mostra 0 contrast errors",
+        "Todos buttons/ícones têm aria-label descritivo",
+        "Contraste mínimo 4.5:1 (AA) em todos textos",
+        "Focus ring é visível e vibrante (ring-4 blue-500)",
+        "Screen readers leem todos labels corretamente",
+        "Tab navigation funciona sem perder focus"
+      ]
+    },
+
+    {
+      "id": 8,
+      "title": "Implementar Truncamento Consistente com Tooltip",
+      "category": "visual",
+      "impact": "low",
+      "effort": "2h",
+      "problem": "BookmarkCard usa line-clamp-3 para texto, mas tags e títulos podem truncar em pontos diferentes. Sem indicação visual (ellipsis) de texto cortado. Ao passar mouse, sem tooltip mostrando texto completo.",
+      "solution": "Padronizar truncamento: títulos line-clamp-2, conteúdo line-clamp-3, tags line-clamp-1 com ellipsis visual. Adicionar componente Tooltip.jsx que aparece ao hover com conteúdo completo. Usar title HTML attribute como fallback.",
+      "sketch": "ANTES:\n┌──────────────────────────┐\n│ @autor                   │\n│ Este é um tweet muito    │ ← truncado sem indicação\n│ longo que fala sobre     │\n│ muitas coisas...         │\n│ [React] [TypeScript] ... │ ← tags truncadas\n└──────────────────────────┘\n\nDEPOIS (com tooltip):\n┌──────────────────────────┐\n│ @autor                   │\n│ Este é um tweet muito    │\n│ longo que fala sobre...  │ ← indica que há mais\n│                          │\n│ [React] [TypeScript] ... │\n│    ↓ (ao hover)          │\n│    ┌─────────────────┐   │\n│    │ Este é um tweet │   │\n│    │ muito longo que │   │\n│    │ fala sobre...   │   │\n│    └─────────────────┘   │\n└──────────────────────────┘",
+      "implementation_details": {
+        "new_component": "src/renderer/components/Tooltip.jsx",
+        "files_affected": [
+          "BookmarkCard.jsx",
+          "TagBadge.jsx",
+          "TweetDetail.jsx"
+        ],
+        "tailwind_classes": {
+          "text_truncated": "truncate",
+          "text_line_clamp": "line-clamp-3",
+          "text_ellipsis": "text-ellipsis overflow-hidden",
+          "tooltip_trigger": "relative",
+          "tooltip_content": "absolute bottom-full left-0 mb-2 p-2 bg-gray-900 text-white text-xs rounded shadow-lg whitespace-normal max-w-xs opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity"
+        }
+      },
+      "dependencies": [],
+      "testing_checklist": [
+        "Texto truncado em 2 ou 3 linhas conforme padrão",
+        "Tooltip aparece ao hover com texto completo",
+        "Tooltip não invade outras áreas do layout",
+        "Tooltip desaparece ao sair do hover",
+        "Touch devices (tablets): tooltip em click/long-press",
+        "Performance: tooltip não causa re-render excessivo"
+      ]
+    },
+
+    {
+      "id": 9,
+      "title": "Adicionar Toast Notifications para Ações de Sucesso/Erro",
+      "category": "feedback",
+      "impact": "high",
+      "effort": "3h",
+      "problem": "Ações (salvar nota, deletar bookmark, criar tag) não dão feedback visual ao usuário. ImportDialog mostra mensagem, mas desaparece rápido. Usuário fica inseguro se ação funcionou.",
+      "solution": "Criar componente Toast.jsx reutilizável (sucesso/erro/info). Integrar com AppStore para gerenciar fila de notificações. Toast aparece no canto superior direito, auto-dismiss após 3-4s. Ícone + cor diferencia tipo (✓ verde, ✕ vermelho, ℹ azul).",
+      "sketch": "┌──────────────────────────────┐\n│ ✓ Bookmark deletado            │ ← toast success\n└──────────────────────────────┘\n\n┌──────────────────────────────┐\n│ ✕ Erro ao salvar nota         │ ← toast error\n└──────────────────────────────┘\n\n┌──────────────────────────────┐\n│ ℹ 12 bookmarks importados     │ ← toast info\n└──────────────────────────────┘",
+      "implementation_details": {
+        "new_component": "src/renderer/components/Toast.jsx",
+        "store_methods": [
+          "useAppStore.showToast(message, type, duration)",
+          "useAppStore.toasts (array of {id, message, type})"
+        ],
+        "types": ["success", "error", "info", "warning"],
+        "tailwind_classes": {
+          "toast_success": "bg-green-500 text-white",
+          "toast_error": "bg-red-500 text-white",
+          "toast_info": "bg-blue-500 text-white",
+          "toast_container": "fixed top-4 right-4 z-[100] space-y-2",
+          "toast_item": "p-4 rounded-lg shadow-lg animate-slideInRight"
+        }
+      },
+      "dependencies": ["AppStore changes"],
+      "testing_checklist": [
+        "Toast aparece ao deletar bookmark",
+        "Toast aparece ao salvar nota com sucesso",
+        "Toast de erro mostra mensagem real de erro",
+        "Toast desaparece automaticamente após 3s",
+        "Múltiplos toasts se empilham corretamente",
+        "Click no toast o fecha imediatamente",
+        "Animação slideIn é suave"
+      ]
+    },
+
+    {
+      "id": 10,
+      "title": "Adicionar Animações de Transição e Microinterações",
+      "category": "visual",
+      "impact": "low",
+      "effort": "2h",
+      "problem": "Aplicação sente estática e sem vida. Cards não têm hover effect suave. Modais aparecem/desaparecem abruptamente. Faltam microinterações (ripple effect em botões, bounce em ícones).",
+      "solution": "Adicionar transition-all a cards (hover:shadow-lg). Modais com animação Framer Motion ou CSS (fade-in + scale-up). Botões com ripple effect ao click. Tag badges com hover scale. Checkbox com checked animation.",
+      "sketch": "MICROINTERAÇÕES:\n\n1. Card hover:\n   Scale: 1 → 1.02\n   Shadow: sm → lg\n   Duration: 200ms\n\n2. Modal entrada:\n   Opacity: 0 → 1\n   Scale: 0.95 → 1\n   Duration: 300ms\n\n3. Button click:\n   Ripple effect (ondinha saindo do centro)\n   Active state pressed visual\n   Duration: 150ms\n\n4. Tag hover:\n   Scale: 1 → 1.1\n   Brightness: 1 → 1.1\n   Duration: 150ms",
+      "implementation_details": {
+        "tailwind_classes": {
+          "card_hover": "transition-all duration-200 hover:shadow-lg hover:scale-[1.02]",
+          "button_active": "active:scale-95 transition-transform duration-100",
+          "tag_hover": "transition-all duration-150 hover:scale-110 hover:brightness-110",
+          "modal_enter": "animate-fadeInScale",
+          "checkbox_checked": "transition-all duration-200"
+        },
+        "custom_css": "Add to index.css:\n@keyframes fadeInScale {\n  from {\n    opacity: 0;\n    transform: scale(0.95);\n  }\n  to {\n    opacity: 1;\n    transform: scale(1);\n  }\n}\n\n@keyframes slideInRight {\n  from {\n    opacity: 0;\n    transform: translateX(100%);\n  }\n  to {\n    opacity: 1;\n    transform: translateX(0);\n  }\n}"
+      },
+      "dependencies": [],
+      "testing_checklist": [
+        "Cards animam ao hover (scale + shadow)",
+        "Modal entra com fade + scale suave",
+        "Botões têm active state (press down visual)",
+        "Tags animam ao hover",
+        "Todas animações são smooth (60fps)",
+        "Transições não causam lag ou jank"
+      ]
+    },
+
+    {
+      "id": 11,
+      "title": "Implementar Indicador Visual de Estado e Progresso (Tags/Filtros)",
+      "category": "interaction",
+      "impact": "medium",
+      "effort": "2h",
+      "problem": "Em Sidebar, elemento selecionado é 'bg-twitter text-white', mas sem transição visual. Ao clicar em tag, lista não mostra indicador visual de que filtro está ativo (além da cor no sidebar). Sem feedback de estado.",
+      "solution": "Adicionar badge de contagem de resultados (ex: '12 bookmarks') no topo da lista. Sidebar mostra checkmark (✓) na tag selecionada além da cor. Search bar mostra pilinha de filtros aplicados (tag + query) como pills descarregáveis.",
+      "sketch": "SIDEBAR COM INDICADOR:\n┌─────────────────────┐\n│ [All Bookmarks]     │ ← 'Todos' sempre visível\n│ [React] ✓           │ ← checkmark mostra seleção\n│ [Vue]               │\n│ [TypeScript]        │\n└─────────────────────┘\n\nTOPO DA LISTA COM FILTROS:\n┌─────────────────────────────────┐\n│ Filtros: [React] ✕  \"search\" ✕ │\n│ 12 bookmarks encontrados        │\n└─────────────────────────────────┘",
+      "implementation_details": {
+        "files_affected": [
+          "src/renderer/components/Sidebar.jsx",
+          "src/renderer/components/BookmarkList.jsx",
+          "Novo: src/renderer/components/ActiveFilters.jsx"
+        ],
+        "tailwind_classes": {
+          "checkmark": "text-green-500 font-bold ml-auto",
+          "filter_badge": "inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-900 rounded-full text-sm",
+          "result_count": "text-sm text-gray-600 mb-4"
+        }
+      },
+      "dependencies": ["AppStore.selectedTag, searchQuery"],
+      "testing_checklist": [
+        "Checkmark aparece na tag selecionada",
+        "Contagem de resultados atualiza ao filtrar",
+        "Filtros ativos aparecem como pills no topo",
+        "Click no ✕ do filtro o remove",
+        "Clearing all filters mostra 'Todos os bookmarks'",
+        "Indicador visual muda ao trocar de filtro"
+      ]
+    },
+
+    {
+      "id": 12,
+      "title": "Melhorar Layout e Espaçamento (Grid/Flex Harmony)",
+      "category": "visual",
+      "impact": "low",
+      "effort": "1h",
+      "problem": "Espaçamento inconsistente entre componentes. Cards com p-4, search com p-4, sidebar com p-4. Sem alinhamento visual. Gaps diferentes (gap-2, gap-3, gap-4) em places aleatórios.",
+      "solution": "Padronizar: p-4 para containers principais, p-3 para cards. Usar gap-3 consistentemente. Implementar grid system visual (ex: cards em grid-cols-1 md:grid-cols-2). Adicionar max-width ao conteúdo (max-w-7xl).",
+      "sketch": "ANTES (inconsistente):\nSidebar: p-4\n  Button: gap-2\nSearch: p-4\nCards: p-4\n  Tags: gap-2 (vs gap-3)\n  Stats: gap-4\n\nDEPOIS (consistente):\nSidebar: p-4\n  Button: gap-3\nSearch: p-4\nCard Grid: grid-cols-1 md:grid-cols-2 lg:grid-cols-3\nCards: p-4, gap-3 interno\n  Tags: gap-3\n  Stats: gap-3",
+      "implementation_details": {
+        "files_affected": [
+          "src/renderer/App.jsx",
+          "src/renderer/components/BookmarkCard.jsx",
+          "src/renderer/components/BookmarkList.jsx"
+        ],
+        "tailwind_standardization": {
+          "container_padding": "p-4 (consistent)",
+          "gap_sizes": "gap-3 (default), gap-2 (tight), gap-4 (loose)",
+          "grid_layout": "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4",
+          "max_width": "max-w-7xl mx-auto"
+        }
+      },
+      "dependencies": [],
+      "testing_checklist": [
+        "Todos containers têm padding consistente",
+        "Gaps uniformes entre elementos",
+        "Grid layout responsivo em todos breakpoints",
+        "Conteúdo centralizado com max-width",
+        "Visual alignment é limpo e profissional",
+        "Espaçamento proporcional em todos tamanhos"
+      ]
+    }
+  ],
+
+  "implementation_roadmap": {
+    "phase_1_critical": "1-2 (Confirmação + Debounce): ~4h | Alta prioridade, afeta UX diária",
+    "phase_2_visual": "3, 5, 10 (Loaders + Scroll + Animações): ~7h | Melhora feedback visual",
+    "phase_3_accessibility": "7, 8, 11 (Contrast + Truncate + Indicadores): ~6h | Inclusividade e clareza",
+    "phase_4_optimization": "4 (N+1 query): ~1d | Backend, depende de review",
+    "phase_5_polish": "6, 9, 12 (Responsivo + Toast + Espaçamento): ~9h | Acabamento final"
+  },
+
+  "qa_notes": {
+    "test_environments": [
+      "Desktop (1920x1080, fullscreen)",
+      "Laptop (1366x768, windowed)",
+      "Tablet (768x1024, landscape)",
+      "Small laptop (1024x600, windowed)"
+    ],
+    "critical_test_paths": [
+      "Import → Buscar → Filtrar → Abrir Detail → Editar Tags → Deletar",
+      "Search debounce (rápido vs lento) → Performance check",
+      "Modal overflow (notas muito longas) → Scroll test",
+      "Responsive (lg → md → sm) → Layout integrity"
+    ],
+    "accessibility_checklist": [
+      "aXe DevTools: 0 erros, 0 warnings",
+      "WAVE: 0 erros de contrast/structure",
+      "Keyboard navigation: Tab through all interactive elements",
+      "Screen reader (NVDA/JAWS): Todos labels legíveis",
+      "Focus visible: Ring sempre visível (ring-4 blue-500)"
+    ],
+    "performance_metrics": [
+      "Load time (100+ bookmarks): <500ms",
+      "Search debounce: Max 1 query per 300ms",
+      "Skeleton loader animation: 60fps smooth",
+      "Modal open/close: <300ms animate",
+      "UI response time: <100ms for user actions"
+    ],
+    "browser_compatibility": [
+      "Electron 41.1.0 (baseline)",
+      "Modern CSS (grid, flexbox, animations)",
+      "Tailwind v4 (all features)",
+      "React 19 hooks"
+    ],
+    "manual_testing_scenarios": [
+      "Import 500+ bookmarks, measure performance",
+      "Delete bookmark → Toast appears → Auto-dismiss",
+      "Searc 'react' → Debounce spinner → Results appear",
+      "Click tag → Sidebar highlights → List updates",
+      "Resize window (1920 → 1024 → 768) → Layout responsive",
+      "Add very long note (1000 chars) → Scroll works",
+      "Rapid clicks on delete → Only one confirm modal"
+    ]
+  },
+
+  "design_system_recommendations": {
+    "color_palette": {
+      "primary": "#1DA1F2 (Twitter Blue)",
+      "success": "#31A24C (Green)",
+      "error": "#E74C3C (Red)",
+      "warning": "#F39C12 (Orange)",
+      "info": "#3498DB (Blue)",
+      "neutral": "Gray scale (50-950)"
+    },
+    "typography": {
+      "font_family": "System stack (Segoe UI, SF Pro, Roboto)",
+      "heading": "font-bold text-lg/xl",
+      "body": "font-normal text-sm/base",
+      "caption": "font-normal text-xs text-gray-600"
+    },
+    "spacing": {
+      "xs": "0.25rem (4px)",
+      "sm": "0.5rem (8px)",
+      "md": "1rem (16px)",
+      "lg": "1.5rem (24px)",
+      "xl": "2rem (32px)"
+    },
+    "shadows": {
+      "sm": "0 1px 2px rgba(0,0,0,0.05)",
+      "md": "0 4px 6px rgba(0,0,0,0.1)",
+      "lg": "0 10px 15px rgba(0,0,0,0.15)",
+      "xl": "0 20px 25px rgba(0,0,0,0.2)"
+    }
+  },
+
+  "deliverables_checklist": {
+    "documentation": [
+      "✓ Este JSON audit completo",
+      "[ ] Figma file com componentes e wireframes",
+      "[ ] Storybook stories para ToastContainer, ConfirmDialog, etc",
+      "[ ] Tailwind config.ts com custom colors/animations"
+    ],
+    "code_ready": [
+      "[ ] ConfirmDialog.jsx (com teste)",
+      "[ ] useDebounce.js hook",
+      "[ ] BookmarkCardSkeleton.jsx",
+      "[ ] Tooltip.jsx component",
+      "[ ] Toast.jsx + store integration",
+      "[ ] useAppStore updates (isSearching, toasts)"
+    ],
+    "qa_ready": [
+      "[ ] Test plan spreadsheet (.xlsx)",
+      "[ ] BDD scenarios em Gherkin (Cucumber)",
+      "[ ] Accessibility audit results"
+    ]
+  }
+}
