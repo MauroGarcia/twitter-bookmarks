@@ -26,13 +26,13 @@ export const useAppStore = create((set, get) => ({
   setEditingTag: (tag) => set({ editingTag: tag }),
 
   // Fetch data
-  loadBookmarks: async (filters = {}) => {
+  loadBookmarks: async () => {
+    const state = get()
     set({ isLoading: true })
     try {
       const bookmarks = await window.api.getBookmarks({
-        tag: get().selectedTag,
-        search: get().searchQuery,
-        ...filters
+        tag: state.selectedTag,
+        search: state.searchQuery
       })
       set({ bookmarks })
     } catch (error) {
@@ -40,6 +40,14 @@ export const useAppStore = create((set, get) => ({
     } finally {
       set({ isLoading: false })
     }
+  },
+
+  // Watch for filter changes
+  initializeBookmarks: async () => {
+    const state = get()
+    await state.loadTags()
+    await state.loadStats()
+    await state.loadBookmarks()
   },
 
   loadTags: async () => {

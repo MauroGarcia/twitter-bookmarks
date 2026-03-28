@@ -12517,13 +12517,13 @@ const useAppStore = create((set, get) => ({
   setEditTagDialog: (open) => set({ editTagDialog: open }),
   setEditingTag: (tag) => set({ editingTag: tag }),
   // Fetch data
-  loadBookmarks: async (filters = {}) => {
+  loadBookmarks: async () => {
+    const state = get();
     set({ isLoading: true });
     try {
       const bookmarks = await window.api.getBookmarks({
-        tag: get().selectedTag,
-        search: get().searchQuery,
-        ...filters
+        tag: state.selectedTag,
+        search: state.searchQuery
       });
       set({ bookmarks });
     } catch (error) {
@@ -12531,6 +12531,13 @@ const useAppStore = create((set, get) => ({
     } finally {
       set({ isLoading: false });
     }
+  },
+  // Watch for filter changes
+  initializeBookmarks: async () => {
+    const state = get();
+    await state.loadTags();
+    await state.loadStats();
+    await state.loadBookmarks();
   },
   loadTags: async () => {
     try {
@@ -12692,16 +12699,8 @@ const __iconNode = [
   ["path", { d: "m6 6 12 12", key: "d8bk6v" }]
 ];
 const X = createLucideIcon("x", __iconNode);
-function useTags() {
-  const { tags, loadTags } = useAppStore();
-  reactExports.useEffect(() => {
-    loadTags();
-  }, []);
-  return { tags, loadTags };
-}
 function Sidebar({ onImport }) {
   const { tags, selectedTag, setSelectedTag, setImportDialog } = useAppStore();
-  useTags();
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("aside", { className: "w-64 bg-gray-50 border-r border-gray-200 p-4 flex flex-col", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mb-6", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
       "button",
@@ -12868,32 +12867,25 @@ function BookmarkCard({ bookmark, tags = [], onClick }) {
     }
   );
 }
-function useBookmarks() {
-  const { bookmarks, loadBookmarks, selectedTag, searchQuery } = useAppStore();
-  reactExports.useEffect(() => {
-    loadBookmarks({
-      tag: selectedTag,
-      search: searchQuery
-    });
-  }, [selectedTag, searchQuery]);
-  return { bookmarks, loadBookmarks };
-}
 function BookmarkList({ onSelectBookmark }) {
   const { bookmarks, isLoading } = useAppStore();
-  const { loadBookmarks } = useBookmarks();
   const [bookmarkTags, setBookmarkTags] = reactExports.useState({});
-  reactExports.useEffect(() => {
-    loadBookmarks();
-  }, []);
   reactExports.useEffect(() => {
     const loadAllTags = async () => {
       const tags = {};
       for (const bookmark of bookmarks) {
-        tags[bookmark.id] = await window.api.getBookmarkTags(bookmark.id);
+        try {
+          tags[bookmark.id] = await window.api.getBookmarkTags(bookmark.id);
+        } catch (error) {
+          console.error("Erro ao carregar tags do bookmark:", error);
+          tags[bookmark.id] = [];
+        }
       }
       setBookmarkTags(tags);
     };
-    loadAllTags();
+    if (bookmarks.length > 0) {
+      loadAllTags();
+    }
   }, [bookmarks]);
   if (isLoading) {
     return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-center py-8 text-gray-500", children: "Carregando..." });
@@ -13243,12 +13235,21 @@ function TweetDetail({ bookmark, tags = [], onClose }) {
   ] }) });
 }
 function App() {
-  const { selectedBookmark, setSelectedBookmark, setImportDialog, loadTags, loadStats } = useAppStore();
+  const {
+    selectedBookmark,
+    setSelectedBookmark,
+    setImportDialog,
+    selectedTag,
+    searchQuery,
+    loadBookmarks
+  } = useAppStore();
   const [selectedBookmarkTags, setSelectedBookmarkTags] = reactExports.useState([]);
   reactExports.useEffect(() => {
-    loadTags();
-    loadStats();
+    useAppStore.getState().initializeBookmarks();
   }, []);
+  reactExports.useEffect(() => {
+    loadBookmarks();
+  }, [selectedTag, searchQuery]);
   const handleSelectBookmark = async (bookmark) => {
     setSelectedBookmark(bookmark);
     try {

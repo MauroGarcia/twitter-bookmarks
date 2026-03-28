@@ -1,10 +1,8 @@
 import { Plus } from 'lucide-react'
 import { useAppStore } from '../store/appStore'
-import { useTags } from '../hooks/useTags'
 
 export function Sidebar({ onImport }) {
   const { tags, selectedTag, setSelectedTag, setImportDialog } = useAppStore()
-  const { loadTags } = useTags()
 
   return (
     <aside className="w-64 bg-gray-50 border-r border-gray-200 p-4 flex flex-col">

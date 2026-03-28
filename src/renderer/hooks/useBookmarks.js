@@ -2,14 +2,10 @@ import { useEffect } from 'react'
 import { useAppStore } from '../store/appStore'
 
 export function useBookmarks() {
-  const { bookmarks, loadBookmarks, selectedTag, searchQuery } = useAppStore()
-
-  useEffect(() => {
-    loadBookmarks({
-      tag: selectedTag,
-      search: searchQuery
-    })
-  }, [selectedTag, searchQuery])
+  const { bookmarks, loadBookmarks } = useAppStore((state) => ({
+    bookmarks: state.bookmarks,
+    loadBookmarks: state.loadBookmarks
+  }))
 
   return { bookmarks, loadBookmarks }
 }

@@ -1,27 +1,28 @@
 import { useEffect, useState } from 'react'
 import { BookmarkCard } from './BookmarkCard'
 import { useAppStore } from '../store/appStore'
-import { useBookmarks } from '../hooks/useBookmarks'
 
 export function BookmarkList({ onSelectBookmark }) {
   const { bookmarks, isLoading } = useAppStore()
-  const { loadBookmarks } = useBookmarks()
   const [bookmarkTags, setBookmarkTags] = useState({})
 
-  useEffect(() => {
-    loadBookmarks()
-  }, [])
-
-  // Carregar tags para cada bookmark
+  // Carregar tags para cada bookmark quando a lista muda
   useEffect(() => {
     const loadAllTags = async () => {
       const tags = {}
       for (const bookmark of bookmarks) {
-        tags[bookmark.id] = await window.api.getBookmarkTags(bookmark.id)
+        try {
+          tags[bookmark.id] = await window.api.getBookmarkTags(bookmark.id)
+        } catch (error) {
+          console.error('Erro ao carregar tags do bookmark:', error)
+          tags[bookmark.id] = []
+        }
       }
       setBookmarkTags(tags)
     }
-    loadAllTags()
+    if (bookmarks.length > 0) {
+      loadAllTags()
+    }
   }, [bookmarks])
 
   if (isLoading) {

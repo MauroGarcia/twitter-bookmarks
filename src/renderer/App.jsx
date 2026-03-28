@@ -7,14 +7,25 @@ import { ImportDialog } from './components/ImportDialog'
 import { TweetDetail } from './components/TweetDetail'
 
 export default function App() {
-  const { selectedBookmark, setSelectedBookmark, setImportDialog, loadTags, loadStats } = useAppStore()
+  const {
+    selectedBookmark,
+    setSelectedBookmark,
+    setImportDialog,
+    selectedTag,
+    searchQuery,
+    loadBookmarks
+  } = useAppStore()
   const [selectedBookmarkTags, setSelectedBookmarkTags] = useState([])
 
   useEffect(() => {
     // Inicializar dados
-    loadTags()
-    loadStats()
+    useAppStore.getState().initializeBookmarks()
   }, [])
+
+  // Recarregar quando filtros mudam
+  useEffect(() => {
+    loadBookmarks()
+  }, [selectedTag, searchQuery])
 
   const handleSelectBookmark = async (bookmark) => {
     setSelectedBookmark(bookmark)
