@@ -254,80 +254,106 @@ async function importBookmarks(filePath) {
   if (!Array.isArray(data)) {
     throw new Error("Formato de arquivo inválido");
   }
-  let count = 0;
-  for (const item of data) {
-    if (!item.tweet) continue;
-    const tweet = item.tweet;
-    const id = tweet.id;
-    const fullText = tweet.full_text || "";
-    const tweetUrl = `https://twitter.com/${tweet.user?.screen_name}/status/${id}`;
-    const existing = getBookmarkById(id);
-    if (existing) continue;
-    try {
-      createBookmark({
-        id,
-        tweet_url: tweetUrl,
-        full_text: fullText,
-        author_name: tweet.user?.name || "Unknown",
-        author_handle: tweet.user?.screen_name || "unknown",
-        author_avatar_url: tweet.user?.profile_image_url_https || null,
-        created_at: tweet.created_at || (/* @__PURE__ */ new Date()).toISOString(),
-        imported_at: (/* @__PURE__ */ new Date()).toISOString(),
-        like_count: tweet.favorite_count || 0,
-        retweet_count: tweet.retweet_count || 0,
-        has_media: (tweet.extended_entities?.media?.length ?? 0) > 0,
-        media_urls: tweet.extended_entities?.media?.map((m) => m.media_url_https) || null,
-        urls: tweet.entities?.urls?.map((u) => ({ url: u.url, expanded_url: u.expanded_url })) || null,
-        raw_json: tweet
-      });
-      count++;
-    } catch (error) {
-      console.error(`Erro ao inserir tweet ${id}:`, error);
+  const insertInTransaction = db.transaction(() => {
+    let count = 0;
+    for (const item of data) {
+      if (!item.tweet) continue;
+      const tweet = item.tweet;
+      const id = tweet.id;
+      const fullText = tweet.full_text || "";
+      const tweetUrl = `https://twitter.com/${tweet.user?.screen_name}/status/${id}`;
+      const existing = getBookmarkById(id);
+      if (existing) continue;
+      try {
+        createBookmark({
+          id,
+          tweet_url: tweetUrl,
+          full_text: fullText,
+          author_name: tweet.user?.name || "Unknown",
+          author_handle: tweet.user?.screen_name || "unknown",
+          author_avatar_url: tweet.user?.profile_image_url_https || null,
+          created_at: tweet.created_at || (/* @__PURE__ */ new Date()).toISOString(),
+          imported_at: (/* @__PURE__ */ new Date()).toISOString(),
+          like_count: tweet.favorite_count || 0,
+          retweet_count: tweet.retweet_count || 0,
+          has_media: (tweet.extended_entities?.media?.length ?? 0) > 0,
+          media_urls: tweet.extended_entities?.media?.map((m) => m.media_url_https) || null,
+          urls: tweet.entities?.urls?.map((u) => ({ url: u.url, expanded_url: u.expanded_url })) || null,
+          raw_json: tweet
+        });
+        count++;
+      } catch (error) {
+        throw new Error(`Erro ao inserir tweet ${id}: ${error.message}`);
+      }
     }
-  }
-  return count;
+    return count;
+  });
+  return insertInTransaction();
+}
+function createErrorHandler(handlerName, handler) {
+  return async (event, ...args) => {
+    try {
+      return await handler(event, ...args);
+    } catch (error) {
+      console.error(`[IPC Handler Error] ${handlerName}:`, error);
+      throw new Error(`Erro em ${handlerName}: ${error.message}`);
+    }
+  };
 }
 function registerIpcHandlers() {
-  ipcMain.handle("bookmarks:get", (event, filters) => {
+  ipcMain.handle("bookmarks:get", createErrorHandler("bookmarks:get", (event, filters) => {
     return getBookmarks(filters);
-  });
-  ipcMain.handle("bookmarks:getWithTags", (event, filters) => {
+  }));
+  ipcMain.handle("bookmarks:getWithTags", createErrorHandler("bookmarks:getWithTags", (event, filters) => {
     return getBookmarksWithTags(filters);
-  });
-  ipcMain.handle("bookmarks:getById", (event, id) => {
+  }));
+  ipcMain.handle("bookmarks:getById", createErrorHandler("bookmarks:getById", (event, id) => {
+    if (!id) throw new Error("ID do bookmark não fornecido");
     return getBookmarkById(id);
-  });
-  ipcMain.handle("bookmarks:delete", (event, id) => {
+  }));
+  ipcMain.handle("bookmarks:delete", createErrorHandler("bookmarks:delete", (event, id) => {
+    if (!id) throw new Error("ID do bookmark não fornecido");
     return deleteBookmark(id);
-  });
-  ipcMain.handle("tags:getAll", (event) => {
+  }));
+  ipcMain.handle("tags:getAll", createErrorHandler("tags:getAll", (event) => {
     return getAllTags();
-  });
-  ipcMain.handle("tags:create", (event, { name, color }) => {
+  }));
+  ipcMain.handle("tags:create", createErrorHandler("tags:create", (event, { name, color }) => {
+    if (!name || !name.trim()) throw new Error("Nome da tag é obrigatório");
     return createTag(name, color);
-  });
-  ipcMain.handle("tags:update", (event, { id, name, color }) => {
+  }));
+  ipcMain.handle("tags:update", createErrorHandler("tags:update", (event, { id, name, color }) => {
+    if (!id) throw new Error("ID da tag não fornecido");
+    if (!name || !name.trim()) throw new Error("Nome da tag é obrigatório");
     return updateTag(id, { name, color });
-  });
-  ipcMain.handle("tags:delete", (event, id) => {
+  }));
+  ipcMain.handle("tags:delete", createErrorHandler("tags:delete", (event, id) => {
+    if (!id) throw new Error("ID da tag não fornecido");
     return deleteTag(id);
-  });
-  ipcMain.handle("bookmarkTags:get", (event, bookmarkId) => {
+  }));
+  ipcMain.handle("bookmarkTags:get", createErrorHandler("bookmarkTags:get", (event, bookmarkId) => {
+    if (!bookmarkId) throw new Error("ID do bookmark não fornecido");
     return getBookmarkTags(bookmarkId);
-  });
-  ipcMain.handle("bookmarkTags:set", (event, { bookmarkId, tagIds }) => {
+  }));
+  ipcMain.handle("bookmarkTags:set", createErrorHandler("bookmarkTags:set", (event, { bookmarkId, tagIds }) => {
+    if (!bookmarkId) throw new Error("ID do bookmark não fornecido");
+    if (!Array.isArray(tagIds)) throw new Error("IDs das tags devem ser um array");
     return setBookmarkTags(bookmarkId, tagIds);
-  });
-  ipcMain.handle("notes:get", (event, bookmarkId) => {
+  }));
+  ipcMain.handle("notes:get", createErrorHandler("notes:get", (event, bookmarkId) => {
+    if (!bookmarkId) throw new Error("ID do bookmark não fornecido");
     return getNote(bookmarkId);
-  });
-  ipcMain.handle("notes:upsert", (event, { bookmarkId, content }) => {
+  }));
+  ipcMain.handle("notes:upsert", createErrorHandler("notes:upsert", (event, { bookmarkId, content }) => {
+    if (!bookmarkId) throw new Error("ID do bookmark não fornecido");
+    if (typeof content !== "string") throw new Error("Conteúdo da nota deve ser uma string");
     return upsertNote(bookmarkId, content);
-  });
-  ipcMain.handle("notes:delete", (event, bookmarkId) => {
+  }));
+  ipcMain.handle("notes:delete", createErrorHandler("notes:delete", (event, bookmarkId) => {
+    if (!bookmarkId) throw new Error("ID do bookmark não fornecido");
     return deleteNote(bookmarkId);
-  });
-  ipcMain.handle("import:run", async (event) => {
+  }));
+  ipcMain.handle("import:run", createErrorHandler("import:run", async (event) => {
     const result = await dialog.showOpenDialog({
       title: "Selecionar arquivo bookmarks.js",
       defaultPath: require2("os").homedir(),
@@ -344,12 +370,13 @@ function registerIpcHandlers() {
       const imported = await importBookmarks(filePath);
       return { success: true, imported, message: `${imported} bookmarks importados com sucesso` };
     } catch (error) {
-      return { success: false, message: error.message };
+      console.error("[Import Error]:", error);
+      return { success: false, message: `Erro na importação: ${error.message}` };
     }
-  });
-  ipcMain.handle("app:getStats", (event) => {
+  }));
+  ipcMain.handle("app:getStats", createErrorHandler("app:getStats", (event) => {
     return getStats();
-  });
+  }));
 }
 const __filename$1 = fileURLToPath(import.meta.url);
 const __dirname$1 = path.dirname(__filename$1);

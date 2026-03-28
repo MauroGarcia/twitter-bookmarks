@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { X, Heart, Repeat2, ExternalLink, Save, Trash2 } from 'lucide-react'
 import { TagBadge } from './TagBadge'
 import { TagSelector } from './TagSelector'
+import { ConfirmDialog } from './ConfirmDialog'
 import { useAppStore } from '../store/appStore'
 
 export function TweetDetail({ bookmark, tags = [], onClose }) {
@@ -9,6 +10,7 @@ export function TweetDetail({ bookmark, tags = [], onClose }) {
   const [selectedTags, setSelectedTags] = useState(tags.map(t => t.id))
   const [isEditingNote, setIsEditingNote] = useState(false)
   const [isEditingTags, setIsEditingTags] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const { loadBookmarks } = useAppStore()
 
   useEffect(() => {
@@ -48,14 +50,13 @@ export function TweetDetail({ bookmark, tags = [], onClose }) {
   }
 
   const handleDeleteBookmark = async () => {
-    if (window.confirm('Tem certeza que deseja deletar este bookmark?')) {
-      try {
-        await window.api.deleteBookmark(bookmark.id)
-        await loadBookmarks()
-        onClose()
-      } catch (error) {
-        console.error('Erro ao deletar bookmark:', error)
-      }
+    try {
+      await window.api.deleteBookmark(bookmark.id)
+      await loadBookmarks()
+      setShowDeleteConfirm(false)
+      onClose()
+    } catch (error) {
+      console.error('Erro ao deletar bookmark:', error)
     }
   }
 
@@ -205,14 +206,26 @@ export function TweetDetail({ bookmark, tags = [], onClose }) {
 
           {/* Delete Button */}
           <button
-            onClick={handleDeleteBookmark}
+            onClick={() => setShowDeleteConfirm(true)}
             className="w-full bg-red-100 text-red-700 py-2 px-4 rounded-lg font-semibold hover:bg-red-200 transition-colors flex items-center justify-center gap-2"
+            data-testid="delete-button"
           >
             <Trash2 size={18} />
             Deletar Bookmark
           </button>
         </div>
       </div>
+
+      <ConfirmDialog
+        isOpen={showDeleteConfirm}
+        title="Deletar Bookmark"
+        message="Tem certeza que deseja deletar este bookmark? Esta ação não pode ser desfeita."
+        confirmText="Deletar"
+        cancelText="Cancelar"
+        isDangerous={true}
+        onConfirm={handleDeleteBookmark}
+        onCancel={() => setShowDeleteConfirm(false)}
+      />
     </div>
   )
 }
