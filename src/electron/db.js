@@ -23,6 +23,10 @@ function escapeLike(value) {
   return `${value}`.replace(/[\\%_]/g, '\\$&')
 }
 
+function normalizeLookupValue(value) {
+  return `${value}`.trim().toLowerCase()
+}
+
 function buildFtsMatchQuery(value) {
   const tokens = `${value}`
     .trim()
@@ -52,8 +56,8 @@ function buildBookmarksQueryParts(filters = {}) {
   const params = []
   const joins = []
   const conditions = []
-  const requestedTags = [...new Set([tag, ...tags].filter(Boolean))]
-  const requestedAuthors = [...new Set([author, ...authors].filter(Boolean))]
+  const requestedTags = [...new Set([tag, ...tags].filter(Boolean).map(normalizeLookupValue))]
+  const requestedAuthors = [...new Set([author, ...authors].filter(Boolean).map(normalizeLookupValue))]
 
   if (requestedTags.length > 0) {
     requestedTags.forEach((tagName, index) => {
@@ -63,7 +67,7 @@ function buildBookmarksQueryParts(filters = {}) {
           FROM bookmark_tags bt${index}
           INNER JOIN tags t${index} ON bt${index}.tag_id = t${index}.id
           WHERE bt${index}.bookmark_id = b.id
-            AND t${index}.name = ?
+            AND t${index}.name_normalized = ?
         )
       `)
       params.push(tagName)
@@ -71,11 +75,10 @@ function buildBookmarksQueryParts(filters = {}) {
   }
 
   if (requestedAuthors.length > 0) {
-    const authorConditions = requestedAuthors.map(() => '(b.author_handle LIKE ? ESCAPE \'\\\\\' OR b.author_name LIKE ? ESCAPE \'\\\\\')')
+    const authorConditions = requestedAuthors.map(() => 'b.author_handle_normalized = ?')
     conditions.push(`(${authorConditions.join(' OR ')})`)
     requestedAuthors.forEach((currentAuthor) => {
-      const escapedAuthor = escapeLike(currentAuthor)
-      params.push(`%${escapedAuthor}%`, `%${escapedAuthor}%`)
+      params.push(currentAuthor)
     })
   }
 
@@ -148,6 +151,14 @@ function ensureBookmarkColumn(columnName, definition) {
   }
 }
 
+function ensureTagColumn(columnName, definition) {
+  const columns = db.prepare('PRAGMA table_info(tags)').all()
+
+  if (!columns.some((column) => column.name === columnName)) {
+    db.exec(`ALTER TABLE tags ADD COLUMN ${columnName} ${definition}`)
+  }
+}
+
 // ============ SCHEMA ============
 export function initDb() {
   db.exec(`
@@ -157,6 +168,7 @@ export function initDb() {
       full_text TEXT NOT NULL,
       author_name TEXT,
       author_handle TEXT,
+      author_handle_normalized TEXT,
       author_avatar_url TEXT,
       created_at TEXT,
       imported_at TEXT NOT NULL,
@@ -173,6 +185,7 @@ export function initDb() {
     CREATE TABLE IF NOT EXISTS tags (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL UNIQUE,
+      name_normalized TEXT,
       color TEXT NOT NULL DEFAULT '#6366f1',
       created_at TEXT NOT NULL
     );
@@ -221,7 +234,22 @@ export function initDb() {
 
   ensureBookmarkColumn('is_favorite', 'INTEGER NOT NULL DEFAULT 0')
   ensureBookmarkColumn('is_archived', 'INTEGER NOT NULL DEFAULT 0')
+  ensureBookmarkColumn('author_handle_normalized', 'TEXT')
+  ensureTagColumn('name_normalized', 'TEXT')
+  db.exec(`
+    UPDATE bookmarks
+    SET author_handle_normalized = LOWER(TRIM(COALESCE(author_handle, '')))
+    WHERE author_handle_normalized IS NULL
+       OR author_handle_normalized <> LOWER(TRIM(COALESCE(author_handle, '')));
+
+    UPDATE tags
+    SET name_normalized = LOWER(TRIM(COALESCE(name, '')))
+    WHERE name_normalized IS NULL
+       OR name_normalized <> LOWER(TRIM(COALESCE(name, '')));
+  `)
   db.exec('CREATE INDEX IF NOT EXISTS idx_bookmarks_status_created_at ON bookmarks(is_archived, is_favorite, created_at DESC)')
+  db.exec('CREATE INDEX IF NOT EXISTS idx_bookmarks_author_handle_normalized ON bookmarks(author_handle_normalized)')
+  db.exec('CREATE INDEX IF NOT EXISTS idx_tags_name_normalized ON tags(name_normalized)')
 }
 
 // ============ BOOKMARKS ============
@@ -238,10 +266,10 @@ export function getBookmarkById(id) {
 export function createBookmark(bookmark) {
   const stmt = db.prepare(`
     INSERT INTO bookmarks (
-      id, tweet_url, full_text, author_name, author_handle,
+      id, tweet_url, full_text, author_name, author_handle, author_handle_normalized,
       author_avatar_url, created_at, imported_at, like_count,
       retweet_count, is_favorite, is_archived, has_media, media_urls, urls, raw_json
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `)
 
   return stmt.run(
@@ -250,6 +278,7 @@ export function createBookmark(bookmark) {
     bookmark.full_text,
     bookmark.author_name,
     bookmark.author_handle,
+    normalizeLookupValue(bookmark.author_handle),
     bookmark.author_avatar_url,
     bookmark.created_at,
     bookmark.imported_at,
@@ -313,17 +342,17 @@ export function getTagById(id) {
 
 export function createTag(name, color = '#6366f1') {
   const stmt = db.prepare(`
-    INSERT INTO tags (name, color, created_at)
-    VALUES (?, ?, ?)
+    INSERT INTO tags (name, name_normalized, color, created_at)
+    VALUES (?, ?, ?, ?)
   `)
-  return stmt.run(name, color, new Date().toISOString())
+  return stmt.run(name, normalizeLookupValue(name), color, new Date().toISOString())
 }
 
 export function updateTag(id, { name, color }) {
   const stmt = db.prepare(`
-    UPDATE tags SET name = ?, color = ? WHERE id = ?
+    UPDATE tags SET name = ?, name_normalized = ?, color = ? WHERE id = ?
   `)
-  return stmt.run(name, color, id)
+  return stmt.run(name, normalizeLookupValue(name), color, id)
 }
 
 export function deleteTag(id) {
