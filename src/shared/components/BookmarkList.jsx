@@ -1,4 +1,4 @@
-import { useMemo, useEffect, useRef } from 'react'
+import { memo, useCallback, useMemo, useEffect, useRef } from 'react'
 import { useAppStore } from '../store/appStore'
 import { BookmarkCard } from './BookmarkCard'
 import { Badge } from './ui/Badge'
@@ -38,6 +38,66 @@ function buildHighlights(bookmarks) {
   ]
 }
 
+const copyByView = {
+  all: {
+    title: 'Recent Bookmarks',
+    description: 'Curadoria viva dos bookmarks ativos, com favoritos rápidos e arquivamento direto do mosaico.',
+    emptyTitle: 'Nenhum bookmark ativo',
+    emptyDescription: 'Arquive menos ou importe novos bookmarks para repovoar a biblioteca principal.'
+  },
+  favorites: {
+    title: 'Favorite Bookmarks',
+    description: 'Colecao priorizada dos bookmarks que merecem voltar para a mesa de trabalho.',
+    emptyTitle: 'Nenhum favorito ainda',
+    emptyDescription: 'Marque alguns cards com estrela para formar a sua shortlist.'
+  },
+  archived: {
+    title: 'Archived Bookmarks',
+    description: 'Itens guardados fora do fluxo principal, mas ainda acessiveis para consulta ou resgate.',
+    emptyTitle: 'Nenhum item arquivado',
+    emptyDescription: 'Arquive cards da home para limpar o fluxo e manter historico.'
+  }
+}
+
+const BookmarkGridItem = memo(function BookmarkGridItem({
+  bookmark,
+  tags,
+  variant,
+  isTransitioning,
+  onToggleFavorite,
+  onToggleArchived,
+  onSelectBookmark
+}) {
+  const handleToggleFavorite = useCallback(() => {
+    onToggleFavorite(bookmark.id)
+  }, [bookmark.id, onToggleFavorite])
+
+  const handleToggleArchived = useCallback(() => {
+    onToggleArchived(bookmark.id)
+  }, [bookmark.id, onToggleArchived])
+
+  const handleSelectBookmark = useCallback(() => {
+    onSelectBookmark(bookmark)
+  }, [bookmark, onSelectBookmark])
+
+  return (
+    <div
+      className={`mb-8 break-inside-avoid transition-all duration-300 ${
+        isTransitioning ? 'pointer-events-none scale-95 opacity-0 blur-[2px]' : ''
+      }`}
+    >
+      <BookmarkCard
+        bookmark={bookmark}
+        tags={tags}
+        variant={variant}
+        onToggleFavorite={handleToggleFavorite}
+        onToggleArchived={handleToggleArchived}
+        onClick={handleSelectBookmark}
+      />
+    </div>
+  )
+})
+
 export function BookmarkList({ onSelectBookmark }) {
   const bookmarks = useAppStore((state) => state.bookmarks)
   const activeView = useAppStore((state) => state.activeView)
@@ -50,26 +110,6 @@ export function BookmarkList({ onSelectBookmark }) {
   const toggleBookmarkArchived = useAppStore((state) => state.toggleBookmarkArchived)
   const sentinelRef = useRef(null)
 
-  const copyByView = {
-    all: {
-      title: 'Recent Bookmarks',
-      description: 'Curadoria viva dos bookmarks ativos, com favoritos rápidos e arquivamento direto do mosaico.',
-      emptyTitle: 'Nenhum bookmark ativo',
-      emptyDescription: 'Arquive menos ou importe novos bookmarks para repovoar a biblioteca principal.'
-    },
-    favorites: {
-      title: 'Favorite Bookmarks',
-      description: 'Colecao priorizada dos bookmarks que merecem voltar para a mesa de trabalho.',
-      emptyTitle: 'Nenhum favorito ainda',
-      emptyDescription: 'Marque alguns cards com estrela para formar a sua shortlist.'
-    },
-    archived: {
-      title: 'Archived Bookmarks',
-      description: 'Itens guardados fora do fluxo principal, mas ainda acessiveis para consulta ou resgate.',
-      emptyTitle: 'Nenhum item arquivado',
-      emptyDescription: 'Arquive cards da home para limpar o fluxo e manter historico.'
-    }
-  }
   const currentCopy = copyByView[activeView] || copyByView.all
 
   useEffect(() => {
@@ -175,21 +215,16 @@ export function BookmarkList({ onSelectBookmark }) {
         <div>
           <div className="columns-1 gap-8 md:columns-2 xl:columns-3 [column-gap:2rem]">
             {bookmarks.map((bookmark, index) => (
-              <div
+              <BookmarkGridItem
                 key={bookmark.id}
-                className={`mb-8 break-inside-avoid transition-all duration-300 ${
-                  transitioningBookmarkIds.includes(bookmark.id) ? 'pointer-events-none scale-95 opacity-0 blur-[2px]' : ''
-                }`}
-              >
-                <BookmarkCard
-                  bookmark={bookmark}
-                  tags={bookmark.tags || []}
-                  variant={index % 4 === 1 ? 'feature' : index % 5 === 0 ? 'accent' : 'default'}
-                  onToggleFavorite={() => toggleBookmarkFavorite(bookmark.id)}
-                  onToggleArchived={() => toggleBookmarkArchived(bookmark.id)}
-                  onClick={() => onSelectBookmark(bookmark)}
-                />
-              </div>
+                bookmark={bookmark}
+                tags={bookmark.tags || []}
+                variant={index % 4 === 1 ? 'feature' : index % 5 === 0 ? 'accent' : 'default'}
+                isTransitioning={transitioningBookmarkIds.includes(bookmark.id)}
+                onToggleFavorite={toggleBookmarkFavorite}
+                onToggleArchived={toggleBookmarkArchived}
+                onSelectBookmark={onSelectBookmark}
+              />
             ))}
           </div>
           <div ref={sentinelRef}>

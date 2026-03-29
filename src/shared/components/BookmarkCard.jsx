@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { memo, useEffect, useState } from 'react'
 import { Archive, ExternalLink, Images, Link2, Star } from 'lucide-react'
 import { TagBadge } from './TagBadge'
 import { Avatar } from './ui/Avatar'
@@ -92,7 +92,7 @@ export function TweetText({ text, className = '' }) {
   )
 }
 
-export function BookmarkCard({
+export const BookmarkCard = memo(function BookmarkCard({
   bookmark,
   tags = [],
   variant = 'default',
@@ -256,4 +256,4 @@ export function BookmarkCard({
       </div>
     </article>
   )
-}
+})
