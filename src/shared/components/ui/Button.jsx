@@ -24,7 +24,7 @@ export function Button({
   return (
     <button
       className={clsx(
-        'btn-base',
+        'btn-base cursor-pointer disabled:cursor-not-allowed',
         variants[variant] ?? variants.primary,
         sizes[size] ?? sizes.md,
         fullWidth && 'w-full',
