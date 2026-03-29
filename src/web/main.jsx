@@ -64,7 +64,7 @@ const httpApi = {
     (filters) => fetchJson('/api/bookmarks?' + new URLSearchParams(filters)),
     (mockApi, filters) => mockApi.getBookmarks(filters),
     (result, filters = {}) => {
-      const hasNoFilters = !filters.tag && !filters.search && (!filters.view || filters.view === 'all')
+      const hasNoFilters = !filters.tag && !filters.search && (!filters.tags || filters.tags.length === 0) && (!filters.view || filters.view === 'all')
 
       if (!hasNoFilters) {
         return false
@@ -79,7 +79,7 @@ const httpApi = {
     (filters) => fetchJson('/api/bookmarks/with-tags?' + new URLSearchParams(filters)),
     (mockApi, filters) => mockApi.getBookmarksWithTags(filters),
     (result, filters = {}) => {
-      const hasNoFilters = !filters.tag && !filters.search && (!filters.view || filters.view === 'all')
+      const hasNoFilters = !filters.tag && !filters.search && (!filters.tags || filters.tags.length === 0) && (!filters.view || filters.view === 'all')
 
       if (!hasNoFilters) {
         return false

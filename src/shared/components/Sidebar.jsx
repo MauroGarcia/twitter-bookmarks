@@ -1,6 +1,11 @@
 import { MdAutoAwesomeMotion } from 'react-icons/md'
 import { useAppStore } from '../store/appStore'
 
+const NAV_SECTIONS = [
+  { id: 'all', label: 'Library', icon: 'grid_view', countKey: 'libraryCount' },
+  { id: 'tags', label: 'Tags', icon: 'sell', countKey: 'tagsCount' }
+]
+
 export function Sidebar() {
   const tags = useAppStore((state) => state.tags)
   const selectedTag = useAppStore((state) => state.selectedTag)
@@ -8,11 +13,10 @@ export function Sidebar() {
   const activeView = useAppStore((state) => state.activeView)
   const setActiveView = useAppStore((state) => state.setActiveView)
   const stats = useAppStore((state) => state.stats)
-  const sections = [
-    { id: 'all', label: 'Library', count: Math.max(0, (stats.bookmarksCount || 0) - (stats.archivedCount || 0)) },
-    { id: 'favorites', label: 'Favoritos', count: stats.favoritesCount || 0 },
-    { id: 'archived', label: 'Arquivados', count: stats.archivedCount || 0 }
-  ]
+  const counts = {
+    libraryCount: Math.max(0, (stats.bookmarksCount || 0) - (stats.archivedCount || 0)),
+    tagsCount: tags.length
+  }
 
   return (
     <aside className="sticky top-0 z-50 flex h-screen w-72 flex-col rounded-r-layout bg-[#121222]/80 px-6 py-8 shadow-cyan backdrop-blur-xl">
@@ -33,27 +37,29 @@ export function Sidebar() {
 
       {/* Nav */}
       <nav className="flex-1 space-y-2 mb-6">
-        {sections.map((section) => (
+        {NAV_SECTIONS.map((section) => (
           <button
             key={section.id}
             onClick={() => {
               setActiveView(section.id)
-              setSelectedTag(null)
+              if (section.id !== 'tags') {
+                setSelectedTag(null)
+              }
             }}
-            className={activeView === section.id && selectedTag === null
+            className={activeView === section.id && (section.id === 'tags' || selectedTag === null)
               ? 'flex w-full scale-105 items-center gap-4 rounded-layout bg-[#1e1e32] px-4 py-3 font-headline font-bold text-[#00e3fd] transition-all duration-300 hover:bg-[#24243a]'
               : 'flex w-full items-center gap-4 rounded-layout px-4 py-3 font-headline text-[#e6e3f9]/60 transition-colors duration-300 hover:bg-[#1e1e32] hover:text-[#00e3fd]'
             }
           >
-            <span className="material-symbols-outlined">auto_awesome_motion</span>
+            <span className="material-symbols-outlined">{section.icon}</span>
             <span className="flex-1 text-left">{section.label}</span>
             <span className="rounded-full bg-surface-container-highest px-2 py-0.5 text-[10px] text-on-surface-variant">
-              {section.count}
+              {counts[section.countKey]}
             </span>
           </button>
         ))}
 
-        {tags.length > 0 && (
+        {tags.length > 0 && activeView !== 'tags' && (
           <>
             {/* Tags Section Title */}
             <div className="pt-4 pb-2 px-4">

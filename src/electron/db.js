@@ -48,16 +48,25 @@ function normalizePagination(filters = {}) {
 }
 
 function buildBookmarksQueryParts(filters = {}) {
-  const { tag, search, author, view = 'all' } = filters
+  const { tag, tags = [], search, author, view = 'all' } = filters
   const params = []
   const joins = []
   const conditions = []
+  const requestedTags = [...new Set([tag, ...tags].filter(Boolean))]
 
-  if (tag) {
-    joins.push('INNER JOIN bookmark_tags bt ON b.id = bt.bookmark_id')
-    joins.push('INNER JOIN tags t ON bt.tag_id = t.id')
-    conditions.push('t.name = ?')
-    params.push(tag)
+  if (requestedTags.length > 0) {
+    requestedTags.forEach((tagName, index) => {
+      conditions.push(`
+        EXISTS (
+          SELECT 1
+          FROM bookmark_tags bt${index}
+          INNER JOIN tags t${index} ON bt${index}.tag_id = t${index}.id
+          WHERE bt${index}.bookmark_id = b.id
+            AND t${index}.name = ?
+        )
+      `)
+      params.push(tagName)
+    })
   }
 
   if (author) {

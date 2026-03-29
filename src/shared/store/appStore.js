@@ -17,6 +17,7 @@ function buildBookmarksCacheKey(filters = {}) {
   return JSON.stringify({
     view: filters.view || 'all',
     tag: filters.tag || '',
+    tags: Array.isArray(filters.tags) ? [...filters.tags].sort() : [],
     search: filters.search || ''
   })
 }
@@ -57,6 +58,8 @@ export const useAppStore = create((set, get) => ({
   activeView: 'all',
   selectedTag: null,
   searchQuery: '',
+  searchTagNames: [],
+  tagSearchQuery: '',
   selectedBookmark: null,
   stats: { bookmarksCount: 0, tagsCount: 0, notesCount: 0, favoritesCount: 0, archivedCount: 0 },
   isLoading: false,
@@ -77,6 +80,8 @@ export const useAppStore = create((set, get) => ({
   setActiveView: (activeView) => set({ activeView }),
   setSelectedTag: (tag) => set({ selectedTag: tag }),
   setSearchQuery: (query) => set({ searchQuery: query }),
+  setSearchTagNames: (tags) => set({ searchTagNames: tags }),
+  setTagSearchQuery: (query) => set({ tagSearchQuery: query }),
   setSelectedBookmark: (bookmark) => set({ selectedBookmark: bookmark }),
   setStats: (stats) => set({ stats }),
   setIsLoading: (loading) => set({ isLoading: loading }),
@@ -93,6 +98,7 @@ export const useAppStore = create((set, get) => ({
     const limit = BOOKMARK_BATCH_SIZE
     const filters = {
       tag: state.selectedTag,
+      tags: state.searchTagNames,
       search: state.searchQuery,
       view: state.activeView,
       offset,
@@ -155,7 +161,7 @@ export const useAppStore = create((set, get) => ({
         return
       }
 
-      if (page.total === 0 && !state.selectedTag && !state.searchQuery) {
+      if (page.total === 0 && !state.selectedTag && !state.searchQuery && state.searchTagNames.length === 0) {
         const mockApi = await getMockApi()
         const mockBookmarks = await mockApi.getBookmarksWithTags(filters)
         const mockStats = await mockApi.getStats()
@@ -196,7 +202,7 @@ export const useAppStore = create((set, get) => ({
     } catch (error) {
       console.error('Erro ao carregar bookmarks:', error)
 
-      if (!state.selectedTag && !state.searchQuery || shouldPreferMockData) {
+      if ((!state.selectedTag && !state.searchQuery && state.searchTagNames.length === 0) || shouldPreferMockData) {
         const mockApi = await getMockApi()
         const mockBookmarks = await mockApi.getBookmarksWithTags(filters)
         const mockStats = await mockApi.getStats()
@@ -237,6 +243,7 @@ export const useAppStore = create((set, get) => ({
     const limit = BOOKMARK_BATCH_SIZE
     const filters = {
       tag: state.selectedTag,
+      tags: state.searchTagNames,
       search: state.searchQuery,
       view: state.activeView,
       offset,

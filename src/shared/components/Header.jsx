@@ -8,6 +8,7 @@ import { IconButton } from './ui/IconButton'
 export function Header({ onImport }) {
   const activeView = useAppStore((state) => state.activeView)
   const setActiveView = useAppStore((state) => state.setActiveView)
+  const setSelectedTag = useAppStore((state) => state.setSelectedTag)
   const tabs = [
     { id: 'all', label: 'Tudo' },
     { id: 'favorites', label: 'Favoritos' },
@@ -52,7 +53,7 @@ export function Header({ onImport }) {
         </div>
 
         {/* Centro: Nav tabs */}
-        <nav ref={navRef} className="relative ml-4 hidden items-center gap-8 lg:flex">
+        <nav ref={navRef} className={`relative ml-4 hidden items-center gap-8 lg:flex ${activeView === 'tags' ? 'opacity-0 pointer-events-none' : ''}`}>
           <span
             className="pointer-events-none absolute bottom-0 h-[2px] rounded-full bg-[#00e3fd] transition-all duration-300 ease-out"
             style={{
@@ -64,7 +65,10 @@ export function Header({ onImport }) {
           {tabs.map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveView(tab.id)}
+              onClick={() => {
+                setActiveView(tab.id)
+                setSelectedTag(null)
+              }}
               className={
                 activeView === tab.id
                   ? 'group relative cursor-pointer font-label text-sm font-medium text-[#00e3fd] transition-colors'

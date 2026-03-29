@@ -4,7 +4,10 @@ import { Sidebar } from './components/Sidebar'
 import { Header } from './components/Header'
 import { BookmarkList } from './components/BookmarkList'
 import { ImportDialog } from './components/ImportDialog'
+import { TagsView } from './components/TagsView'
 import { TweetDetail } from './components/TweetDetail'
+
+const BOOKMARK_VIEWS = new Set(['all', 'favorites', 'archived'])
 
 export default function App() {
   const selectedBookmark = useAppStore((state) => state.selectedBookmark)
@@ -13,6 +16,7 @@ export default function App() {
   const activeView = useAppStore((state) => state.activeView)
   const selectedTag = useAppStore((state) => state.selectedTag)
   const searchQuery = useAppStore((state) => state.searchQuery)
+  const searchTagNames = useAppStore((state) => state.searchTagNames)
   const loadBookmarks = useAppStore((state) => state.loadBookmarks)
   const hasHandledInitialFilters = useRef(false)
 
@@ -23,13 +27,17 @@ export default function App() {
 
   // Recarregar quando filtros mudam
   useEffect(() => {
+    if (!BOOKMARK_VIEWS.has(activeView)) {
+      return
+    }
+
     if (!hasHandledInitialFilters.current) {
       hasHandledInitialFilters.current = true
       return
     }
 
     loadBookmarks()
-  }, [activeView, selectedTag, searchQuery])
+  }, [activeView, selectedTag, searchQuery, searchTagNames])
 
   const handleSelectBookmark = (bookmark) => {
     setSelectedBookmark(bookmark)
@@ -47,7 +55,9 @@ export default function App() {
         <Header onImport={() => setImportDialog(true)} />
 
         <div className="flex-1 overflow-y-auto p-8">
-          <BookmarkList onSelectBookmark={handleSelectBookmark} />
+          {BOOKMARK_VIEWS.has(activeView)
+            ? <BookmarkList onSelectBookmark={handleSelectBookmark} />
+            : <TagsView />}
         </div>
       </main>
 

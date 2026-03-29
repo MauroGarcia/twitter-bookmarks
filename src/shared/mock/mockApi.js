@@ -3,6 +3,8 @@ import { parseTwitterBookmarksExport } from '../lib/twitter-bookmarks-import'
 
 const MOCK_BOOKMARK_STATE_STORAGE_KEY = 'twitter-bookmarks.mock-state.v1'
 const MOCK_IMPORTED_BOOKMARKS_STORAGE_KEY = 'twitter-bookmarks.mock-imported.v1'
+const MOCK_TAGS_STORAGE_KEY = 'twitter-bookmarks.mock-tags.v1'
+const MOCK_BOOKMARK_TAGS_STORAGE_KEY = 'twitter-bookmarks.mock-bookmark-tags.v1'
 
 const rawMockBookmarks = [
   {
@@ -533,6 +535,32 @@ function persistImportedBookmarks(bookmarks) {
   window.localStorage.setItem(MOCK_IMPORTED_BOOKMARKS_STORAGE_KEY, JSON.stringify(importedBookmarks))
 }
 
+function loadStoredTags() {
+  if (typeof window === 'undefined' || !window.localStorage) {
+    return null
+  }
+
+  try {
+    const rawValue = window.localStorage.getItem(MOCK_TAGS_STORAGE_KEY)
+    return rawValue ? JSON.parse(rawValue) : null
+  } catch {
+    return null
+  }
+}
+
+function loadStoredBookmarkTagMap() {
+  if (typeof window === 'undefined' || !window.localStorage) {
+    return null
+  }
+
+  try {
+    const rawValue = window.localStorage.getItem(MOCK_BOOKMARK_TAGS_STORAGE_KEY)
+    return rawValue ? JSON.parse(rawValue) : null
+  } catch {
+    return null
+  }
+}
+
 const storedMockState = loadStoredMockState()
 const storedImportedBookmarks = loadStoredImportedBookmarks()
 const mockBookmarks = normalizeBookmarks(
@@ -567,6 +595,81 @@ const mockBookmarks = normalizeBookmarks(
   })
 )
 
+function buildDefaultTagData(bookmarks) {
+  const defaultTags = [
+    { id: 1, name: 'AI', color: '#8b5cf6', created_at: '2026-03-01T09:00:00.000Z' },
+    { id: 2, name: 'Infra', color: '#00e3fd', created_at: '2026-03-02T09:00:00.000Z' },
+    { id: 3, name: 'Security', color: '#ff6e84', created_at: '2026-03-03T09:00:00.000Z' },
+    { id: 4, name: 'UI Systems', color: '#ff5ed6', created_at: '2026-03-04T09:00:00.000Z' },
+    { id: 5, name: 'Status', color: '#f59e0b', created_at: '2026-03-05T09:00:00.000Z' }
+  ]
+  const assignments = {}
+
+  for (const bookmark of bookmarks) {
+    const tagIds = new Set()
+    const text = `${bookmark.full_text} ${(bookmark.author_name || '')} ${(bookmark.author_handle || '')}`.toLowerCase()
+
+    if (/(openai|anthropic|claude|chatgpt|codex|copilot|cursor|ai)/.test(text)) {
+      tagIds.add(1)
+    }
+    if (/(vercel|cloudflare|workers|runtime|deploy|infra|latency|node|vite)/.test(text)) {
+      tagIds.add(2)
+    }
+    if (/(security|responsible scaling|vulnerabilit|dependabot|attack|incident)/.test(text)) {
+      tagIds.add(3)
+    }
+    if (/(design|ui|figma|v0|interface|typography)/.test(text)) {
+      tagIds.add(4)
+    }
+    if (/(status|degraded|investigating|outage|timeout)/.test(text) || bookmark.author_handle === 'githubstatus') {
+      tagIds.add(5)
+    }
+
+    assignments[bookmark.id] = Array.from(tagIds)
+  }
+
+  return { tags: defaultTags, assignments }
+}
+
+const storedTags = loadStoredTags()
+const storedBookmarkTagMap = loadStoredBookmarkTagMap()
+const defaultTagData = buildDefaultTagData(mockBookmarks)
+const mockTags = Array.isArray(storedTags) ? storedTags : defaultTagData.tags
+const mockBookmarkTagMap = storedBookmarkTagMap && typeof storedBookmarkTagMap === 'object'
+  ? storedBookmarkTagMap
+  : defaultTagData.assignments
+
+function persistMockTags() {
+  if (typeof window === 'undefined' || !window.localStorage) {
+    return
+  }
+
+  window.localStorage.setItem(MOCK_TAGS_STORAGE_KEY, JSON.stringify(mockTags))
+  window.localStorage.setItem(MOCK_BOOKMARK_TAGS_STORAGE_KEY, JSON.stringify(mockBookmarkTagMap))
+}
+
+function hydrateBookmarkTags(bookmark) {
+  const tagIds = mockBookmarkTagMap[bookmark.id] || []
+
+  return {
+    ...bookmark,
+    tags: tagIds
+      .map((tagId) => mockTags.find((tag) => tag.id === tagId))
+      .filter(Boolean)
+  }
+}
+
+function getTagUsageCount(tagId) {
+  return Object.values(mockBookmarkTagMap).filter((tagIds) => Array.isArray(tagIds) && tagIds.includes(tagId)).length
+}
+
+function buildTagRecord(tag) {
+  return {
+    ...tag,
+    count: getTagUsageCount(tag.id)
+  }
+}
+
 function createImportedBookmark(tweet) {
   const id = tweet.id
   const authorHandle = tweet.user?.screen_name || 'unknown'
@@ -597,6 +700,7 @@ function createImportedBookmark(tweet) {
 function persistMockBookmarks(bookmarks) {
   persistMockState(bookmarks)
   persistImportedBookmarks(bookmarks)
+  persistMockTags()
 }
 
 function upsertImportedBookmarks(items) {
@@ -632,11 +736,12 @@ function updateMockBookmark(id, updater) {
 }
 
 function filterBookmarks(filters = {}) {
-  const tagFilter = filters.tag ? `${filters.tag}`.toLowerCase() : ''
+  const requestedTags = [...new Set([filters.tag, ...(Array.isArray(filters.tags) ? filters.tags : [])].filter(Boolean))]
+    .map((tag) => `${tag}`.toLowerCase())
   const searchFilter = filters.search ? `${filters.search}`.toLowerCase() : ''
   const view = filters.view || 'all'
 
-  let items = [...mockBookmarks]
+  let items = mockBookmarks.map(hydrateBookmarkTags)
 
   if (view === 'favorites') {
     items = items.filter((bookmark) => bookmark.is_favorite && !bookmark.is_archived)
@@ -646,9 +751,11 @@ function filterBookmarks(filters = {}) {
     items = items.filter((bookmark) => !bookmark.is_archived)
   }
 
-  if (tagFilter) {
+  if (requestedTags.length > 0) {
     items = items.filter((bookmark) =>
-      (bookmark.tags || []).some((tag) => `${tag.name}`.toLowerCase() === tagFilter)
+      requestedTags.every((requestedTag) =>
+        (bookmark.tags || []).some((tag) => `${tag.name}`.toLowerCase() === requestedTag)
+      )
     )
   }
 
@@ -693,7 +800,8 @@ export const mockApi = {
   },
 
   async getBookmarkById(id) {
-    return mockBookmarks.find((bookmark) => bookmark.id === id) || null
+    const bookmark = mockBookmarks.find((item) => item.id === id)
+    return bookmark ? hydrateBookmarkTags(bookmark) : null
   },
 
   async setBookmarkFavorite(id, isFavorite) {
@@ -711,27 +819,80 @@ export const mockApi = {
   },
 
   async getAllTags() {
-    return []
+    return mockTags
+      .map(buildTagRecord)
+      .sort((left, right) => left.name.localeCompare(right.name, 'pt-BR'))
   },
 
-  async createTag() {
-    throw new Error('Tag creation is not available in mock mode')
+  async createTag(name, color = '#6366f1') {
+    if (!name || !name.trim()) {
+      throw new Error('Nome da tag é obrigatório')
+    }
+
+    const normalizedName = name.trim().toLowerCase()
+
+    if (mockTags.some((tag) => tag.name.trim().toLowerCase() === normalizedName)) {
+      throw new Error('Já existe uma tag com esse nome')
+    }
+
+    const nextId = mockTags.reduce((max, tag) => Math.max(max, tag.id), 0) + 1
+    const tag = {
+      id: nextId,
+      name: name.trim(),
+      color,
+      created_at: new Date().toISOString()
+    }
+
+    mockTags.push(tag)
+    persistMockTags()
+    return { lastInsertRowid: tag.id }
   },
 
-  async updateTag() {
-    throw new Error('Tag update is not available in mock mode')
+  async updateTag(id, name, color) {
+    const tag = mockTags.find((item) => item.id === id)
+
+    if (!tag) {
+      throw new Error('Tag não encontrada')
+    }
+
+    const normalizedName = name.trim().toLowerCase()
+    if (mockTags.some((item) => item.id !== id && item.name.trim().toLowerCase() === normalizedName)) {
+      throw new Error('Já existe outra tag com esse nome')
+    }
+
+    tag.name = name.trim()
+    tag.color = color
+    persistMockTags()
+    return tag
   },
 
-  async deleteTag() {
-    throw new Error('Tag deletion is not available in mock mode')
+  async deleteTag(id) {
+    const tagIndex = mockTags.findIndex((tag) => tag.id === id)
+
+    if (tagIndex === -1) {
+      throw new Error('Tag não encontrada')
+    }
+
+    mockTags.splice(tagIndex, 1)
+
+    for (const bookmarkId of Object.keys(mockBookmarkTagMap)) {
+      mockBookmarkTagMap[bookmarkId] = (mockBookmarkTagMap[bookmarkId] || []).filter((tagId) => tagId !== id)
+    }
+
+    persistMockTags()
+    return { deleted: id }
   },
 
-  async getBookmarkTags() {
-    return []
+  async getBookmarkTags(bookmarkId) {
+    return (mockBookmarkTagMap[bookmarkId] || [])
+      .map((tagId) => mockTags.find((tag) => tag.id === tagId))
+      .filter(Boolean)
   },
 
-  async setBookmarkTags() {
-    return []
+  async setBookmarkTags(bookmarkId, tagIds) {
+    mockBookmarkTagMap[bookmarkId] = Array.from(new Set(tagIds))
+    persistMockTags()
+    return this.getBookmarkTags(bookmarkId)
   },
 
   async getNote() {
@@ -772,7 +933,7 @@ export const mockApi = {
       bookmarksCount: mockBookmarks.length,
       favoritesCount: mockBookmarks.filter((bookmark) => bookmark.is_favorite && !bookmark.is_archived).length,
       archivedCount: mockBookmarks.filter((bookmark) => bookmark.is_archived).length,
-      tagsCount: 0,
+      tagsCount: mockTags.length,
       notesCount: 0
     }
   }
