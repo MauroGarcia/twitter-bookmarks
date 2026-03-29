@@ -63,13 +63,13 @@ export function TweetDetail({ bookmark, tags = [], onClose }) {
   if (!bookmark) return null
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg max-w-2xl w-full max-h-96 overflow-y-auto">
-        <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between">
-          <h2 className="text-lg font-bold">Detalhes do Bookmark</h2>
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-surface-container rounded-xl max-w-2xl w-full max-h-96 overflow-y-auto shadow-cyan border border-outline-variant/10">
+        <div className="sticky top-0 bg-surface-container border-b border-outline-variant/10 p-6 flex items-center justify-between">
+          <h2 className="font-headline text-lg font-bold text-on-surface">Detalhes do Bookmark</h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600"
+            className="text-on-surface-variant hover:text-on-surface transition-colors"
           >
             <X size={20} />
           </button>
@@ -77,28 +77,28 @@ export function TweetDetail({ bookmark, tags = [], onClose }) {
 
         <div className="p-6 space-y-6">
           {/* Tweet Info */}
-          <div className="border-b border-gray-200 pb-4">
+          <div className="border-b border-outline-variant/10 pb-4">
             <div className="flex gap-3 mb-3">
               {bookmark.author_avatar_url && (
                 <img
                   src={bookmark.author_avatar_url}
                   alt={bookmark.author_name}
-                  className="w-12 h-12 rounded-full"
+                  className="w-12 h-12 rounded-full ring-1 ring-primary/20"
                 />
               )}
               <div className="flex-1">
-                <h3 className="font-bold text-gray-900">{bookmark.author_name}</h3>
-                <p className="text-sm text-gray-500">@{bookmark.author_handle}</p>
+                <h3 className="font-headline font-bold text-on-surface">{bookmark.author_name}</h3>
+                <p className="text-sm text-on-surface-variant">@{bookmark.author_handle}</p>
               </div>
             </div>
-            <p className="text-gray-800 mb-3">{bookmark.full_text}</p>
+            <p className="font-body text-on-surface/80 mb-3">{bookmark.full_text}</p>
 
-            <div className="flex items-center gap-4 text-sm text-gray-600">
-              <button className="flex items-center gap-1 hover:text-twitter">
+            <div className="flex items-center gap-4 text-sm text-on-surface-variant">
+              <button className="flex items-center gap-1 hover:text-error transition-colors">
                 <Heart size={16} />
                 {bookmark.like_count}
               </button>
-              <button className="flex items-center gap-1 hover:text-twitter">
+              <button className="flex items-center gap-1 hover:text-secondary transition-colors">
                 <Repeat2 size={16} />
                 {bookmark.retweet_count}
               </button>
@@ -106,7 +106,7 @@ export function TweetDetail({ bookmark, tags = [], onClose }) {
                 href={bookmark.tweet_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-1 hover:text-twitter ml-auto"
+                className="flex items-center gap-1 hover:text-primary transition-colors ml-auto"
               >
                 <ExternalLink size={16} />
                 Ver no Twitter
@@ -116,12 +116,12 @@ export function TweetDetail({ bookmark, tags = [], onClose }) {
 
           {/* Tags */}
           <div>
-            <div className="flex items-center justify-between mb-2">
-              <h4 className="font-semibold text-gray-900">Tags</h4>
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="font-headline font-semibold text-on-surface">Tags</h4>
               {!isEditingTags && (
                 <button
                   onClick={() => setIsEditingTags(true)}
-                  className="text-sm text-twitter hover:underline"
+                  className="text-sm text-secondary hover:text-primary transition-colors"
                 >
                   Editar
                 </button>
@@ -129,19 +129,19 @@ export function TweetDetail({ bookmark, tags = [], onClose }) {
             </div>
 
             {isEditingTags ? (
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <TagSelector selectedTagIds={selectedTags} onChange={setSelectedTags} />
                 <div className="flex gap-2">
                   <button
                     onClick={handleSaveTags}
-                    className="flex-1 bg-twitter text-white py-2 rounded-lg font-semibold hover:bg-blue-500"
+                    className="flex-1 bg-neon-gradient text-on-primary-fixed py-2 rounded-lg font-headline font-bold hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-2"
                   >
-                    <Save size={16} className="inline mr-2" />
+                    <Save size={16} />
                     Salvar
                   </button>
                   <button
                     onClick={() => setIsEditingTags(false)}
-                    className="flex-1 bg-gray-200 text-gray-900 py-2 rounded-lg font-semibold hover:bg-gray-300"
+                    className="flex-1 bg-surface-container-high text-on-surface-variant py-2 rounded-lg font-headline font-bold hover:text-on-surface transition-colors"
                   >
                     Cancelar
                   </button>
@@ -152,19 +152,19 @@ export function TweetDetail({ bookmark, tags = [], onClose }) {
                 {tags.map((tag) => (
                   <TagBadge key={tag.id} tag={tag} />
                 ))}
-                {tags.length === 0 && <p className="text-gray-500 text-sm">Nenhuma tag</p>}
+                {tags.length === 0 && <p className="text-on-surface-variant text-sm">Nenhuma tag</p>}
               </div>
             )}
           </div>
 
           {/* Notes */}
           <div>
-            <div className="flex items-center justify-between mb-2">
-              <h4 className="font-semibold text-gray-900">Notas Pessoais</h4>
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="font-headline font-semibold text-on-surface">Notas Pessoais</h4>
               {!isEditingNote && (
                 <button
                   onClick={() => setIsEditingNote(true)}
-                  className="text-sm text-twitter hover:underline"
+                  className="text-sm text-secondary hover:text-primary transition-colors"
                 >
                   Editar
                 </button>
@@ -172,33 +172,33 @@ export function TweetDetail({ bookmark, tags = [], onClose }) {
             </div>
 
             {isEditingNote ? (
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <textarea
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
-                  className="w-full h-32 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-twitter"
+                  className="w-full h-32 p-3 bg-surface-container-lowest border border-outline-variant/20 rounded-lg text-on-surface focus:outline-none focus:ring-1 focus:ring-secondary/40 placeholder:text-on-surface-variant/40"
                   placeholder="Adicione suas notas pessoais..."
                 />
                 <div className="flex gap-2">
                   <button
                     onClick={handleSaveNote}
-                    className="flex-1 bg-twitter text-white py-2 rounded-lg font-semibold hover:bg-blue-500"
+                    className="flex-1 bg-neon-gradient text-on-primary-fixed py-2 rounded-lg font-headline font-bold hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-2"
                   >
-                    <Save size={16} className="inline mr-2" />
+                    <Save size={16} />
                     Salvar
                   </button>
                   <button
                     onClick={() => setIsEditingNote(false)}
-                    className="flex-1 bg-gray-200 text-gray-900 py-2 rounded-lg font-semibold hover:bg-gray-300"
+                    className="flex-1 bg-surface-container-high text-on-surface-variant py-2 rounded-lg font-headline font-bold hover:text-on-surface transition-colors"
                   >
                     Cancelar
                   </button>
                 </div>
               </div>
             ) : (
-              <div className="bg-gray-50 p-3 rounded-lg min-h-20">
-                <p className="text-gray-700 text-sm whitespace-pre-wrap">
-                  {note || <span className="text-gray-400 italic">Nenhuma nota</span>}
+              <div className="bg-surface-container-lowest p-4 rounded-lg min-h-20 border border-outline-variant/10">
+                <p className="font-body text-on-surface/80 text-sm whitespace-pre-wrap">
+                  {note || <span className="text-on-surface-variant italic">Nenhuma nota</span>}
                 </p>
               </div>
             )}
@@ -207,7 +207,7 @@ export function TweetDetail({ bookmark, tags = [], onClose }) {
           {/* Delete Button */}
           <button
             onClick={() => setShowDeleteConfirm(true)}
-            className="w-full bg-red-100 text-red-700 py-2 px-4 rounded-lg font-semibold hover:bg-red-200 transition-colors flex items-center justify-center gap-2"
+            className="w-full border border-error/20 text-error py-3 px-4 rounded-lg font-headline font-bold hover:bg-error/10 transition-colors flex items-center justify-center gap-2"
             data-testid="delete-button"
           >
             <Trash2 size={18} />

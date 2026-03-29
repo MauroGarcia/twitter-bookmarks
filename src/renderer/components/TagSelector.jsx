@@ -37,30 +37,30 @@ export function TagSelector({ selectedTagIds = [], onChange }) {
           onChange={(e) => setNewTagName(e.target.value)}
           onKeyPress={(e) => e.key === 'Enter' && handleCreateTag()}
           placeholder="Nova tag..."
-          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-twitter text-sm"
+          className="flex-1 px-3 py-2 bg-surface-container-lowest border border-outline-variant/20 rounded-lg text-on-surface focus:outline-none focus:ring-1 focus:ring-secondary/40 placeholder:text-on-surface-variant/40 text-sm"
         />
         <button
           onClick={handleCreateTag}
-          className="bg-twitter text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-500 text-sm"
+          className="bg-neon-gradient text-on-primary-fixed px-4 py-2 rounded-lg font-headline font-bold hover:opacity-90 active:scale-95 transition-all text-sm"
         >
           Criar
         </button>
       </div>
 
-      <div className="space-y-2 max-h-48 overflow-y-auto">
+      <div className="space-y-1 max-h-48 overflow-y-auto">
         {tags.map((tag) => (
-          <label key={tag.id} className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded cursor-pointer">
+          <label key={tag.id} className="flex items-center gap-3 p-2 hover:bg-surface-container-high rounded-lg cursor-pointer transition-colors">
             <input
               type="checkbox"
               checked={selectedTagIds.includes(tag.id)}
               onChange={() => handleToggleTag(tag.id)}
-              className="w-4 h-4 rounded cursor-pointer"
+              className="w-4 h-4 rounded cursor-pointer accent-secondary"
             />
             <div
               className="w-4 h-4 rounded-full flex-shrink-0"
               style={{ backgroundColor: tag.color }}
             />
-            <span className="flex-1 text-sm text-gray-900">{tag.name}</span>
+            <span className="flex-1 text-sm text-on-surface">{tag.name}</span>
           </label>
         ))}
       </div>

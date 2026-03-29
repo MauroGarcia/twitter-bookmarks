@@ -37,39 +37,39 @@ export function ImportDialog() {
   if (!importDialog) return null
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold">Importar Bookmarks</h2>
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
+      <div className="bg-surface-container rounded-xl p-6 shadow-cyan border border-outline-variant/10 max-w-lg w-full mx-4">
+        <div className="flex items-center justify-between mb-4 pb-4 border-b border-outline-variant/10">
+          <h2 className="font-headline text-lg font-bold text-on-surface">Importar Bookmarks</h2>
           <button
             onClick={() => setImportDialog(false)}
-            className="text-gray-400 hover:text-gray-600"
+            className="text-on-surface-variant hover:text-on-surface transition-colors"
           >
             <X size={20} />
           </button>
         </div>
 
-        <p className="text-sm text-gray-600 mb-6">
-          Selecione o arquivo <code className="bg-gray-100 px-2 py-1 rounded">bookmarks.js</code> da sua
+        <p className="font-body text-sm text-on-surface-variant mb-6">
+          Selecione o arquivo <code className="bg-surface-container-highest px-2 py-1 rounded text-on-surface">bookmarks.js</code> da sua
           exportação do Twitter para importar todos os seus bookmarks salvos.
         </p>
 
         {message && (
-          <div className="mb-4 p-3 bg-green-100 text-green-700 rounded-lg text-sm">
-            {message}
+          <div className="mb-4 p-3 bg-secondary/10 text-secondary rounded-lg text-sm border border-secondary/20">
+            ✓ {message}
           </div>
         )}
 
         {error && (
-          <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg text-sm">
-            {error}
+          <div className="mb-4 p-3 bg-error/10 text-error rounded-lg text-sm border border-error/20">
+            ✕ {error}
           </div>
         )}
 
         <button
           onClick={handleImport}
           disabled={isImporting}
-          className="w-full bg-twitter text-white py-2 px-4 rounded-lg font-semibold hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+          className="w-full bg-neon-gradient text-on-primary-fixed py-3 px-4 rounded-lg font-headline font-bold hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 transition-all flex items-center justify-center gap-2"
         >
           <Upload size={18} />
           {isImporting ? 'Importando...' : 'Selecionar e Importar'}

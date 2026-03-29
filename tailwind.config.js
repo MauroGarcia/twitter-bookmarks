@@ -4,45 +4,61 @@ export default {
     "./src/renderer/index.html",
     "./src/renderer/**/*.{js,jsx,ts,tsx}",
   ],
+  darkMode: "class",
   theme: {
     extend: {
-      fontFamily: {
-        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
-      },
       colors: {
-        twitter: {
-          50: '#f0f9ff',
-          100: '#e0f2fe',
-          200: '#bae6fd',
-          300: '#7dd3fc',
-          400: '#38bdf8',
-          500: '#0ea5e9',
-          600: '#0284c7',
-          700: '#0369a1',
-          800: '#075985',
-          900: '#0c4a6e',
-          950: '#082f49',
-        },
-        brand: {
-          primary: '#1DA1F2',
-          secondary: '#1B1B1B',
-          accent: '#F91880',
-          success: '#17BF63',
-          warning: '#FFAD1F',
-        }
+        // Superfícies (dark)
+        "surface":                   "#0d0d1c",
+        "surface-dim":               "#0d0d1c",
+        "surface-container-lowest":  "#000000",
+        "surface-container-low":     "#121222",
+        "surface-container":         "#18182a",
+        "surface-container-high":    "#1e1e32",
+        "surface-container-highest": "#24243a",
+        "surface-bright":            "#2a2a42",
+        // Texto
+        "on-surface":         "#e6e3f9",
+        "on-surface-variant": "#aba9be",
+        // Primário (violeta)
+        "primary":            "#bb9eff",
+        "primary-dim":        "#874cff",
+        "primary-fixed":      "#af8dff",
+        "on-primary-fixed":   "#000000",
+        "inverse-primary":    "#7000ff",
+        // Secundário (ciano)
+        "secondary":          "#00e3fd",
+        "secondary-dim":      "#00d4ec",
+        // Terciário (magenta)
+        "tertiary":           "#ff5ed6",
+        // Utilitários
+        "outline":            "#757487",
+        "outline-variant":    "#474658",
+        "error":              "#ff6e84",
+        "on-error":           "#490013",
       },
-      boxShadow: {
-        'sm': '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
-        'md': '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-        'lg': '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-        'xl': '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-        'card': '0 4px 12px rgba(0, 0, 0, 0.08)',
-        'hover': '0 8px 20px rgba(0, 0, 0, 0.12)',
+      fontFamily: {
+        headline: ["Manrope", "sans-serif"],
+        body:     ["Inter", "sans-serif"],
+        label:    ["Inter", "sans-serif"],
+        sans:     ["Inter", "system-ui", "sans-serif"],
+      },
+      borderRadius: {
+        soft:    "16px",
+        DEFAULT: "0.75rem",
+        lg:      "1rem",
+        xl:      "1rem",
       },
       backgroundImage: {
-        'gradient-primary': 'linear-gradient(135deg, #1DA1F2 0%, #1a8cd8 100%)',
-        'gradient-card': 'linear-gradient(135deg, rgba(29, 161, 242, 0.05) 0%, rgba(31, 193, 244, 0.02) 100%)',
-      }
+        "neon-gradient":  "linear-gradient(135deg, #bb9eff 0%, #874cff 100%)",
+        "glass-gradient": "linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0) 100%)",
+      },
+      boxShadow: {
+        "neon":    "0 0 20px rgba(112, 0, 255, 0.3)",
+        "cyan":    "0 24px 48px -12px rgba(0, 227, 253, 0.08)",
+        "glow-sm": "0 8px 20px -6px rgba(187, 158, 255, 0.4)",
+      },
     },
   },
+  plugins: [],
 }
