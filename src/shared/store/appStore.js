@@ -1,9 +1,17 @@
 import { create } from 'zustand'
 import { api } from '../services/api'
-import { mockApi } from '../mock/mockApi'
 import { normalizeBookmarks } from '../lib/bookmark-utils'
 
 const BOOKMARK_BATCH_SIZE = 12
+let mockApiPromise = null
+
+async function getMockApi() {
+  if (!mockApiPromise) {
+    mockApiPromise = import('../mock/mockApi').then((module) => module.mockApi)
+  }
+
+  return mockApiPromise
+}
 
 function buildBookmarksCacheKey(filters = {}) {
   return JSON.stringify({
@@ -115,6 +123,7 @@ export const useAppStore = create((set, get) => ({
 
     try {
       if (shouldPreferMockData) {
+        const mockApi = await getMockApi()
         const mockBookmarks = await mockApi.getBookmarksWithTags(filters)
         const mockStats = await mockApi.getStats()
         const page = normalizePageResult(mockBookmarks, offset, limit)
@@ -147,6 +156,7 @@ export const useAppStore = create((set, get) => ({
       }
 
       if (page.total === 0 && !state.selectedTag && !state.searchQuery) {
+        const mockApi = await getMockApi()
         const mockBookmarks = await mockApi.getBookmarksWithTags(filters)
         const mockStats = await mockApi.getStats()
         const mockPage = normalizePageResult(mockBookmarks, offset, limit)
@@ -187,6 +197,7 @@ export const useAppStore = create((set, get) => ({
       console.error('Erro ao carregar bookmarks:', error)
 
       if (!state.selectedTag && !state.searchQuery || shouldPreferMockData) {
+        const mockApi = await getMockApi()
         const mockBookmarks = await mockApi.getBookmarksWithTags(filters)
         const mockStats = await mockApi.getStats()
         const page = normalizePageResult(mockBookmarks, offset, limit)
@@ -242,7 +253,7 @@ export const useAppStore = create((set, get) => ({
 
     try {
       const sourceResult = shouldPreferMockData
-        ? await mockApi.getBookmarksWithTags(filters)
+        ? await (await getMockApi()).getBookmarksWithTags(filters)
         : await api.getBookmarksWithTags(filters)
       const page = normalizePageResult(sourceResult, offset, limit)
 
@@ -266,6 +277,7 @@ export const useAppStore = create((set, get) => ({
       console.error('Erro ao carregar mais bookmarks:', error)
 
       if (shouldPreferMockData) {
+        const mockApi = await getMockApi()
         const mockBookmarks = await mockApi.getBookmarksWithTags(filters)
         const page = normalizePageResult(mockBookmarks, offset, limit)
 
@@ -315,7 +327,7 @@ export const useAppStore = create((set, get) => ({
       set({ stats, isUsingMockData: false })
     } catch (error) {
       console.error('Erro ao carregar stats:', error)
-      const stats = await mockApi.getStats()
+      const stats = await (await getMockApi()).getStats()
       set({ stats, isUsingMockData: true })
     }
   },
@@ -329,7 +341,7 @@ export const useAppStore = create((set, get) => ({
     }
 
     const nextValue = !bookmark.is_favorite
-    const mutationApi = state.isUsingMockData ? mockApi : api
+    const mutationApi = state.isUsingMockData ? await getMockApi() : api
     const mutationVersion = Date.now()
 
     set((currentState) => {
@@ -384,7 +396,7 @@ export const useAppStore = create((set, get) => ({
 
     const nextValue = !bookmark.is_archived
     const shouldFadeOut = nextValue && state.activeView !== 'archived'
-    const mutationApi = state.isUsingMockData ? mockApi : api
+    const mutationApi = state.isUsingMockData ? await getMockApi() : api
     const mutationVersion = Date.now()
 
     if (shouldFadeOut) {

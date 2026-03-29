@@ -2,7 +2,6 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { setApi } from '../shared/services/api'
 import App from '../shared/App'
-import { mockApi } from '../shared/mock/mockApi'
 import './index.css'
 
 /**
@@ -19,13 +18,24 @@ async function fetchJson(url, options) {
   return response.json()
 }
 
+let mockApiPromise = null
+
+function getMockApi() {
+  if (!mockApiPromise) {
+    mockApiPromise = import('../shared/mock/mockApi').then((module) => module.mockApi)
+  }
+
+  return mockApiPromise
+}
+
 function withMockFallback(primary, fallback) {
   return async (...args) => {
     try {
       return await primary(...args)
     } catch (error) {
       console.warn('[web] Falling back to local mock API:', error)
-      return fallback(...args)
+      const mockApi = await getMockApi()
+      return fallback(mockApi, ...args)
     }
   }
 }
@@ -36,13 +46,15 @@ function withMockFallbackOnEmpty(primary, fallback, isEmptyResult) {
       const result = await primary(...args)
 
       if (isEmptyResult(result, ...args)) {
-        return fallback(...args)
+        const mockApi = await getMockApi()
+        return fallback(mockApi, ...args)
       }
 
       return result
     } catch (error) {
       console.warn('[web] Falling back to local mock API:', error)
-      return fallback(...args)
+      const mockApi = await getMockApi()
+      return fallback(mockApi, ...args)
     }
   }
 }
@@ -50,7 +62,7 @@ function withMockFallbackOnEmpty(primary, fallback, isEmptyResult) {
 const httpApi = {
   getBookmarks: withMockFallbackOnEmpty(
     (filters) => fetchJson('/api/bookmarks?' + new URLSearchParams(filters)),
-    mockApi.getBookmarks,
+    (mockApi, filters) => mockApi.getBookmarks(filters),
     (result, filters = {}) => {
       const hasNoFilters = !filters.tag && !filters.search && (!filters.view || filters.view === 'all')
 
@@ -65,7 +77,7 @@ const httpApi = {
   ),
   getBookmarksWithTags: withMockFallbackOnEmpty(
     (filters) => fetchJson('/api/bookmarks/with-tags?' + new URLSearchParams(filters)),
-    mockApi.getBookmarksWithTags,
+    (mockApi, filters) => mockApi.getBookmarksWithTags(filters),
     (result, filters = {}) => {
       const hasNoFilters = !filters.tag && !filters.search && (!filters.view || filters.view === 'all')
 
@@ -80,64 +92,64 @@ const httpApi = {
   ),
   getBookmarkById: withMockFallback(
     (id) => fetchJson(`/api/bookmarks/${id}`),
-    mockApi.getBookmarkById
+    (mockApi, id) => mockApi.getBookmarkById(id)
   ),
   setBookmarkFavorite: withMockFallback(
     (id, isFavorite) => fetchJson(`/api/bookmarks/${id}/favorite`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ isFavorite }) }),
-    mockApi.setBookmarkFavorite
+    (mockApi, id, isFavorite) => mockApi.setBookmarkFavorite(id, isFavorite)
   ),
   setBookmarkArchived: withMockFallback(
     (id, isArchived) => fetchJson(`/api/bookmarks/${id}/archived`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ isArchived }) }),
-    mockApi.setBookmarkArchived
+    (mockApi, id, isArchived) => mockApi.setBookmarkArchived(id, isArchived)
   ),
   deleteBookmark: withMockFallback(
     (id) => fetchJson(`/api/bookmarks/${id}`, { method: 'DELETE' }),
-    mockApi.deleteBookmark
+    (mockApi, id) => mockApi.deleteBookmark(id)
   ),
 
   getAllTags: withMockFallback(
     () => fetchJson('/api/tags'),
-    mockApi.getAllTags
+    (mockApi) => mockApi.getAllTags()
   ),
   createTag: withMockFallback(
     (name, color) => fetchJson('/api/tags', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, color }) }),
-    mockApi.createTag
+    (mockApi, name, color) => mockApi.createTag(name, color)
   ),
   updateTag: withMockFallback(
     (id, name, color) => fetchJson(`/api/tags/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, color }) }),
-    mockApi.updateTag
+    (mockApi, id, name, color) => mockApi.updateTag(id, name, color)
   ),
   deleteTag: withMockFallback(
     (id) => fetchJson(`/api/tags/${id}`, { method: 'DELETE' }),
-    mockApi.deleteTag
+    (mockApi, id) => mockApi.deleteTag(id)
   ),
 
   getBookmarkTags: withMockFallback(
     (bookmarkId) => fetchJson(`/api/bookmarks/${bookmarkId}/tags`),
-    mockApi.getBookmarkTags
+    (mockApi, bookmarkId) => mockApi.getBookmarkTags(bookmarkId)
   ),
   setBookmarkTags: withMockFallback(
     (bookmarkId, tagIds) => fetchJson(`/api/bookmarks/${bookmarkId}/tags`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tagIds }) }),
-    mockApi.setBookmarkTags
+    (mockApi, bookmarkId, tagIds) => mockApi.setBookmarkTags(bookmarkId, tagIds)
   ),
 
   getNote: withMockFallback(
     (bookmarkId) => fetchJson(`/api/bookmarks/${bookmarkId}/note`),
-    mockApi.getNote
+    (mockApi, bookmarkId) => mockApi.getNote(bookmarkId)
   ),
   upsertNote: withMockFallback(
     (bookmarkId, content) => fetchJson(`/api/bookmarks/${bookmarkId}/note`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content }) }),
-    mockApi.upsertNote
+    (mockApi, bookmarkId, content) => mockApi.upsertNote(bookmarkId, content)
   ),
   deleteNote: withMockFallback(
     (bookmarkId) => fetchJson(`/api/bookmarks/${bookmarkId}/note`, { method: 'DELETE' }),
-    mockApi.deleteNote
+    (mockApi, bookmarkId) => mockApi.deleteNote(bookmarkId)
   ),
 
-  importBookmarks: (payload) => mockApi.importBookmarks(payload),
+  importBookmarks: async (payload) => (await getMockApi()).importBookmarks(payload),
   getStats: withMockFallbackOnEmpty(
     () => fetchJson('/api/stats'),
-    mockApi.getStats,
+    (mockApi) => mockApi.getStats(),
     (result) => Number(result?.bookmarksCount || 0) === 0
   ),
 }
