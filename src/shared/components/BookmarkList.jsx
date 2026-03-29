@@ -1,4 +1,4 @@
-import { memo, useCallback, useDeferredValue, useMemo, useEffect, useRef } from 'react'
+import { memo, useCallback, useMemo, useEffect, useRef } from 'react'
 import { useAppStore } from '../store/appStore'
 import { BookmarkCard } from './BookmarkCard'
 import { Badge } from './ui/Badge'
@@ -132,7 +132,7 @@ export function BookmarkList({ onSelectBookmark }) {
   const toggleBookmarkFavorite = useAppStore((state) => state.toggleBookmarkFavorite)
   const toggleBookmarkArchived = useAppStore((state) => state.toggleBookmarkArchived)
   const sentinelRef = useRef(null)
-  const renderedBookmarks = useDeferredValue(bookmarks)
+  const renderedBookmarks = bookmarks
 
   const currentCopy = copyByView[activeView] || copyByView.all
 

@@ -3,6 +3,7 @@ import { expect, test } from '@playwright/test'
 const workflowCardText = 'Introducing a code → design → code workflow in Codex'
 const appsSdkCardText = 'Apps in ChatGPT are powered by the Apps SDK'
 const vercelCardText = "We're improving the pricing of our infrastructure products"
+const oldestActiveCardText = 'v0 is now open for everyone.'
 
 function getBookmarkCard(page, text) {
   return page.locator('article').filter({ hasText: text })
@@ -81,4 +82,17 @@ test('moves a bookmark from active results to favorites and archived', async ({ 
     await expect(workflowCard).toBeVisible()
     await expect(getBookmarkCard(page, appsSdkCardText)).toHaveCount(0)
   })
+})
+
+test('loads the next bookmark batch while scrolling the all view', async ({ page }) => {
+  await openApp(page)
+
+  await expect(getBookmarkCard(page, oldestActiveCardText)).toHaveCount(0)
+
+  const scrollRegion = page.locator('main > div.overflow-y-auto')
+  await scrollRegion.evaluate((element) => {
+    element.scrollTo({ top: element.scrollHeight, behavior: 'auto' })
+  })
+
+  await expect(getBookmarkCard(page, oldestActiveCardText)).toBeVisible()
 })
