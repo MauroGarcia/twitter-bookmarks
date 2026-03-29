@@ -496,13 +496,33 @@ function filterBookmarks(filters = {}) {
   return items.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
 }
 
+function paginateBookmarks(items, filters = {}) {
+  const offset = Number.isFinite(Number(filters.offset)) ? Math.max(0, Number(filters.offset)) : 0
+  const limit = Number.isFinite(Number(filters.limit)) ? Math.max(1, Number(filters.limit)) : items.length
+  const pagedItems = items.slice(offset, offset + limit)
+
+  return {
+    items: pagedItems,
+    total: items.length,
+    offset,
+    limit,
+    hasMore: offset + pagedItems.length < items.length
+  }
+}
+
 export const mockApi = {
   async getBookmarks(filters = {}) {
-    return filterBookmarks(filters)
+    const items = filterBookmarks(filters)
+    return filters.offset !== undefined || filters.limit !== undefined
+      ? paginateBookmarks(items, filters)
+      : items
   },
 
   async getBookmarksWithTags(filters = {}) {
-    return filterBookmarks(filters)
+    const items = filterBookmarks(filters)
+    return filters.offset !== undefined || filters.limit !== undefined
+      ? paginateBookmarks(items, filters)
+      : items
   },
 
   async getBookmarkById(id) {

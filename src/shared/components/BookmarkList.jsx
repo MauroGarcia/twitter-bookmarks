@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useEffect, useRef } from 'react'
 import { useAppStore } from '../store/appStore'
 import { BookmarkCard } from './BookmarkCard'
 
@@ -38,8 +38,38 @@ function buildHighlights(bookmarks) {
 export function BookmarkList({ onSelectBookmark }) {
   const bookmarks = useAppStore((state) => state.bookmarks)
   const isLoading = useAppStore((state) => state.isLoading)
+  const isLoadingMore = useAppStore((state) => state.isLoadingMore)
+  const hasMoreBookmarks = useAppStore((state) => state.hasMoreBookmarks)
+  const loadMoreBookmarks = useAppStore((state) => state.loadMoreBookmarks)
+  const sentinelRef = useRef(null)
+
+  useEffect(() => {
+    const sentinel = sentinelRef.current
+    if (!sentinel) return
+
+    let scrollParent = sentinel.parentElement
+    while (scrollParent && scrollParent !== document.body) {
+      const { overflowY, overflow } = window.getComputedStyle(scrollParent)
+      if (overflowY === 'auto' || overflowY === 'scroll' || overflow === 'auto' || overflow === 'scroll') break
+      scrollParent = scrollParent.parentElement
+    }
+
+    const root = scrollParent !== document.body ? scrollParent : null
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMoreBookmarks && !isLoadingMore) {
+          loadMoreBookmarks()
+        }
+      },
+      { root, rootMargin: '200px' }
+    )
+
+    observer.observe(sentinel)
+    return () => observer.disconnect()
+  }, [hasMoreBookmarks, isLoadingMore, loadMoreBookmarks])
+
   const highlights = useMemo(() => buildHighlights(bookmarks), [bookmarks])
-  const topBookmarks = useMemo(() => bookmarks.slice(0, 12), [bookmarks])
   const totalLikes = useMemo(
     () => bookmarks.reduce((sum, bookmark) => sum + (bookmark.like_count || 0), 0),
     [bookmarks]
@@ -136,7 +166,7 @@ export function BookmarkList({ onSelectBookmark }) {
 
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_300px]">
         <div className="grid grid-cols-1 gap-8 md:grid-cols-2 xl:grid-cols-3">
-          {topBookmarks.map((bookmark, index) => (
+          {bookmarks.map((bookmark, index) => (
             <BookmarkCard
               key={bookmark.id}
               bookmark={bookmark}
@@ -146,6 +176,13 @@ export function BookmarkList({ onSelectBookmark }) {
               onClick={() => onSelectBookmark(bookmark)}
             />
           ))}
+          <div ref={sentinelRef} className="col-span-full">
+            {(hasMoreBookmarks || isLoadingMore) && (
+              <div className="flex justify-center py-6">
+                <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+              </div>
+            )}
+          </div>
         </div>
 
         <aside className="rounded-layout border border-outline-variant/10 bg-surface-container p-6 shadow-cyan">
