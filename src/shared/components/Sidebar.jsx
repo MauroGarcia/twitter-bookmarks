@@ -1,8 +1,7 @@
-import { Plus } from 'lucide-react'
 import { MdAutoAwesomeMotion } from 'react-icons/md'
 import { useAppStore } from '../store/appStore'
 
-export function Sidebar({ onImport }) {
+export function Sidebar() {
   const { tags, selectedTag, setSelectedTag } = useAppStore()
 
   return (
@@ -69,20 +68,6 @@ export function Sidebar({ onImport }) {
           </>
         )}
       </nav>
-
-      {/* CTA Button */}
-      <div className="mb-6">
-        <button
-          onClick={onImport}
-          className="flex w-full items-center justify-center gap-2 rounded-layout bg-neon-gradient py-4 font-headline font-bold text-on-primary-fixed shadow-glow-sm transition-all hover:opacity-90 active:scale-95"
-        >
-          <Plus size={20} />
-          Importar
-        </button>
-      </div>
-
-      {/* Divider */}
-      <div className="h-px bg-outline-variant/10"></div>
 
       {/* Footer */}
       <div className="mt-6 pt-6 border-t border-outline-variant/10 text-center">

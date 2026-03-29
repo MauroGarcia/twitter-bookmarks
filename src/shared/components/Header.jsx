@@ -1,7 +1,7 @@
-import { Settings, Bell } from 'lucide-react'
+import { Bell, Download, Settings } from 'lucide-react'
 import { SearchBar } from './SearchBar'
 
-export function Header() {
+export function Header({ onImport }) {
   return (
     <header className="sticky top-0 z-40 h-20 bg-[#0d0d1c]/60 backdrop-blur-md flex justify-between items-center px-12 py-4">
       <div className="flex items-center gap-6 flex-1">
@@ -26,6 +26,13 @@ export function Header() {
 
       {/* Direita: Ícones + Avatar */}
       <div className="flex items-center gap-4 ml-auto">
+        <button
+          onClick={onImport}
+          className="flex items-center gap-2 rounded-layout bg-surface-container-high px-5 py-2 text-sm font-semibold text-primary transition-all hover:bg-surface-bright"
+        >
+          <Download size={20} />
+          Importar
+        </button>
         <button className="rounded-layout p-2 text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-secondary">
           <Settings size={20} />
         </button>

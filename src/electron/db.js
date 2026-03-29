@@ -3,8 +3,13 @@ import path from 'path'
 import os from 'os'
 import fs from 'fs'
 
-const DB_DIR = path.join(os.homedir(), 'AppData', 'Local', 'twitter-bookmarks')
-const DB_PATH = path.join(DB_DIR, 'bookmarks.db')
+const isTestDb = process.env.TEST_DB === 'true'
+const DB_DIR = isTestDb
+  ? path.join(process.cwd(), 'tests', '.tmp')
+  : path.join(os.homedir(), 'AppData', 'Local', 'twitter-bookmarks')
+const DB_PATH = isTestDb
+  ? path.join(DB_DIR, 'bookmarks.test.db')
+  : path.join(DB_DIR, 'bookmarks.db')
 
 // Criar diretório se não existir
 if (!fs.existsSync(DB_DIR)) {

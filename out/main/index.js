@@ -9,8 +9,9 @@ import __cjs_mod__ from "node:module";
 const __filename = import.meta.filename;
 const __dirname = import.meta.dirname;
 const require2 = __cjs_mod__.createRequire(import.meta.url);
-const DB_DIR = path.join(os.homedir(), "AppData", "Local", "twitter-bookmarks");
-const DB_PATH = path.join(DB_DIR, "bookmarks.db");
+const isTestDb = process.env.TEST_DB === "true";
+const DB_DIR = isTestDb ? path.join(process.cwd(), "tests", ".tmp") : path.join(os.homedir(), "AppData", "Local", "twitter-bookmarks");
+const DB_PATH = isTestDb ? path.join(DB_DIR, "bookmarks.test.db") : path.join(DB_DIR, "bookmarks.db");
 if (!fs.existsSync(DB_DIR)) {
   fs.mkdirSync(DB_DIR, { recursive: true });
 }
