@@ -139,6 +139,10 @@ export function BookmarkList({ onSelectBookmark }) {
   }, [hasMoreBookmarks, isLoadingMore, loadMoreBookmarks])
 
   const highlights = useMemo(() => buildHighlights(bookmarks), [bookmarks])
+  const transitioningBookmarkIdSet = useMemo(
+    () => new Set(transitioningBookmarkIds),
+    [transitioningBookmarkIds]
+  )
   const totalLikes = useMemo(
     () => bookmarks.reduce((sum, bookmark) => sum + (bookmark.like_count || 0), 0),
     [bookmarks]
@@ -220,7 +224,7 @@ export function BookmarkList({ onSelectBookmark }) {
                 bookmark={bookmark}
                 tags={bookmark.tags || []}
                 variant={index % 4 === 1 ? 'feature' : index % 5 === 0 ? 'accent' : 'default'}
-                isTransitioning={transitioningBookmarkIds.includes(bookmark.id)}
+                isTransitioning={transitioningBookmarkIdSet.has(bookmark.id)}
                 onToggleFavorite={toggleBookmarkFavorite}
                 onToggleArchived={toggleBookmarkArchived}
                 onSelectBookmark={onSelectBookmark}
