@@ -7,15 +7,13 @@ import { ImportDialog } from './components/ImportDialog'
 import { TweetDetail } from './components/TweetDetail'
 
 export default function App() {
-  const {
-    selectedBookmark,
-    setSelectedBookmark,
-    setImportDialog,
-    activeView,
-    selectedTag,
-    searchQuery,
-    loadBookmarks
-  } = useAppStore()
+  const selectedBookmark = useAppStore((state) => state.selectedBookmark)
+  const setSelectedBookmark = useAppStore((state) => state.setSelectedBookmark)
+  const setImportDialog = useAppStore((state) => state.setImportDialog)
+  const activeView = useAppStore((state) => state.activeView)
+  const selectedTag = useAppStore((state) => state.selectedTag)
+  const searchQuery = useAppStore((state) => state.searchQuery)
+  const loadBookmarks = useAppStore((state) => state.loadBookmarks)
   const hasHandledInitialFilters = useRef(false)
 
   useEffect(() => {
