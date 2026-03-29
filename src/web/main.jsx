@@ -111,6 +111,10 @@ const httpApi = {
     () => fetchJson('/api/tags'),
     (mockApi) => mockApi.getAllTags()
   ),
+  getAllAuthors: withMockFallback(
+    () => fetchJson('/api/authors'),
+    (mockApi) => mockApi.getAllAuthors()
+  ),
   createTag: withMockFallback(
     (name, color) => fetchJson('/api/tags', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, color }) }),
     (mockApi, name, color) => mockApi.createTag(name, color)

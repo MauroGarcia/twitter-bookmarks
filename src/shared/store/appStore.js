@@ -56,6 +56,7 @@ export const useAppStore = create((set, get) => ({
   // Estado
   bookmarks: [],
   tags: [],
+  authors: [],
   activeView: 'all',
   selectedTag: null,
   searchQuery: '',
@@ -79,6 +80,7 @@ export const useAppStore = create((set, get) => ({
   // Ações
   setBookmarks: (bookmarks) => set({ bookmarks }),
   setTags: (tags) => set({ tags }),
+  setAuthors: (authors) => set({ authors }),
   setActiveView: (activeView) => set({ activeView }),
   setSelectedTag: (tag) => set({ selectedTag: tag }),
   setSearchQuery: (query) => set({ searchQuery: query }),
@@ -320,6 +322,7 @@ export const useAppStore = create((set, get) => ({
   initializeBookmarks: async () => {
     const state = get()
     await state.loadTags()
+    await state.loadAuthors()
     await state.loadStats()
     await state.loadBookmarks()
   },
@@ -330,6 +333,15 @@ export const useAppStore = create((set, get) => ({
       set({ tags })
     } catch (error) {
       console.error('Erro ao carregar tags:', error)
+    }
+  },
+
+  loadAuthors: async () => {
+    try {
+      const authors = await api.getAllAuthors()
+      set({ authors })
+    } catch (error) {
+      console.error('Erro ao carregar autores:', error)
     }
   },
 

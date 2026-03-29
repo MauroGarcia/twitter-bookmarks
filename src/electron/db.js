@@ -289,6 +289,23 @@ export function getAllTags() {
   return stmt.all()
 }
 
+export function getAllAuthors() {
+  const stmt = db.prepare(`
+    SELECT
+      author_handle AS handle,
+      author_name AS name,
+      COUNT(*) AS count
+    FROM bookmarks
+    WHERE author_handle IS NOT NULL
+      AND TRIM(author_handle) <> ''
+      AND is_archived = 0
+    GROUP BY author_handle, author_name
+    ORDER BY count DESC, author_handle ASC
+  `)
+
+  return stmt.all()
+}
+
 export function getTagById(id) {
   const stmt = db.prepare('SELECT * FROM tags WHERE id = ?')
   return stmt.get(id)

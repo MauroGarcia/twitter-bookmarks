@@ -49,6 +49,10 @@ export function registerIpcHandlers() {
     return db.getAllTags()
   }))
 
+  ipcMain.handle('authors:getAll', createErrorHandler('authors:getAll', () => {
+    return db.getAllAuthors()
+  }))
+
   ipcMain.handle('tags:create', createErrorHandler('tags:create', (event, { name, color }) => {
     if (!name || !name.trim()) throw new Error('Nome da tag é obrigatório')
     return db.createTag(name, color)

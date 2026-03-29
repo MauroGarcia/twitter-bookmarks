@@ -27,6 +27,7 @@ export const api = {
   deleteBookmark: (...args) => getApi().deleteBookmark(...args),
 
   getAllTags: (...args) => getApi().getAllTags(...args),
+  getAllAuthors: (...args) => getApi().getAllAuthors(...args),
   createTag: (...args) => getApi().createTag(...args),
   updateTag: (...args) => getApi().updateTag(...args),
   deleteTag: (...args) => getApi().deleteTag(...args),

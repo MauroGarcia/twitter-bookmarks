@@ -670,6 +670,34 @@ function buildTagRecord(tag) {
   }
 }
 
+function buildAuthorRecords() {
+  const authorMap = new Map()
+
+  mockBookmarks.forEach((bookmark) => {
+    const handle = `${bookmark.author_handle || ''}`.trim()
+    if (!handle) {
+      return
+    }
+
+    const key = handle.toLowerCase()
+    const current = authorMap.get(key)
+
+    authorMap.set(key, {
+      handle,
+      name: bookmark.author_name || handle,
+      count: (current?.count || 0) + 1
+    })
+  })
+
+  return Array.from(authorMap.values()).sort((left, right) => {
+    if (right.count !== left.count) {
+      return right.count - left.count
+    }
+
+    return left.handle.localeCompare(right.handle, 'pt-BR')
+  })
+}
+
 function createImportedBookmark(tweet) {
   const id = tweet.id
   const authorHandle = tweet.user?.screen_name || 'unknown'
@@ -833,6 +861,10 @@ export const mockApi = {
     return mockTags
       .map(buildTagRecord)
       .sort((left, right) => left.name.localeCompare(right.name, 'pt-BR'))
+  },
+
+  async getAllAuthors() {
+    return buildAuthorRecords()
   },
 
   async createTag(name, color = '#6366f1') {

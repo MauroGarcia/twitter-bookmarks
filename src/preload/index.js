@@ -11,6 +11,7 @@ const api = {
 
   // Tags
   getAllTags: () => ipcRenderer.invoke('tags:getAll'),
+  getAllAuthors: () => ipcRenderer.invoke('authors:getAll'),
   createTag: (name, color) => ipcRenderer.invoke('tags:create', { name, color }),
   updateTag: (id, name, color) => ipcRenderer.invoke('tags:update', { id, name, color }),
   deleteTag: (id) => ipcRenderer.invoke('tags:delete', id),

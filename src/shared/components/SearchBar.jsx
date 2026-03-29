@@ -30,36 +30,22 @@ function buildTagSuggestions(tags, selectedTags, query) {
     .slice(0, 6)
 }
 
-function buildAuthorSuggestions(bookmarks, selectedAuthors, query) {
+function buildAuthorSuggestions(authors, selectedAuthors, query) {
   const normalizedQuery = `${query}`.trim().toLowerCase()
   const selectedAuthorSet = new Set(selectedAuthors.map((author) => author.toLowerCase()))
-  const authorMap = new Map()
 
-  bookmarks.forEach((bookmark) => {
-    const handle = `${bookmark.author_handle || ''}`.trim()
-    if (!handle) {
-      return
-    }
+  return authors
+    .filter((author) => {
+      const handle = `${author.handle || ''}`.trim()
+      if (!handle) return false
+      if (selectedAuthorSet.has(handle.toLowerCase())) return false
 
-    const key = handle.toLowerCase()
-    if (selectedAuthorSet.has(key) || authorMap.has(key)) {
-      return
-    }
+      if (!normalizedQuery) return true
 
-    const name = `${bookmark.author_name || ''}`.trim()
-    const haystack = `${handle} ${name}`.toLowerCase()
-
-    if (normalizedQuery && !haystack.includes(normalizedQuery)) {
-      return
-    }
-
-    authorMap.set(key, {
-      handle,
-      name
+      const haystack = `${handle} ${author.name || ''}`.toLowerCase()
+      return haystack.includes(normalizedQuery)
     })
-  })
-
-  return Array.from(authorMap.values()).slice(0, 6)
+    .slice(0, 6)
 }
 
 function splitVisibleChips(items) {
@@ -116,7 +102,7 @@ function TagsSearchInput() {
 }
 
 function BookmarkSearchInput() {
-  const bookmarks = useAppStore((state) => state.bookmarks)
+  const authors = useAppStore((state) => state.authors)
   const tags = useAppStore((state) => state.tags)
   const searchQuery = useAppStore((state) => state.searchQuery)
   const setSearchQuery = useAppStore((state) => state.setSearchQuery)
@@ -140,8 +126,8 @@ function BookmarkSearchInput() {
     [searchTagNames, tagQuery, tags]
   )
   const authorSuggestions = useMemo(
-    () => buildAuthorSuggestions(bookmarks, searchAuthorHandles, authorQuery),
-    [authorQuery, bookmarks, searchAuthorHandles]
+    () => buildAuthorSuggestions(authors, searchAuthorHandles, authorQuery),
+    [authorQuery, authors, searchAuthorHandles]
   )
   const hasSuggestions = activeTrigger === 'tag'
     ? tagSuggestions.length > 0
