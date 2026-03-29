@@ -1,4 +1,4 @@
-import { Plus, Bookmark } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { useAppStore } from '../store/appStore'
 
 export function Sidebar({ onImport }) {
@@ -8,8 +8,8 @@ export function Sidebar({ onImport }) {
     <aside className="w-72 bg-[#121222]/80 backdrop-blur-xl rounded-r-xl sticky top-0 h-screen flex flex-col py-8 px-6 shadow-cyan z-50">
       {/* Logo */}
       <div className="mb-10 flex items-center gap-3">
-        <div className="w-10 h-10 rounded-lg bg-neon-gradient flex items-center justify-center">
-          <Bookmark size={24} className="text-on-primary-fixed" />
+        <div className="w-10 h-10 rounded-lg bg-neon-gradient flex items-center justify-center text-xl">
+          ✨
         </div>
         <div>
           <h1 className="font-headline text-2xl font-bold tracking-tighter text-primary">
@@ -22,16 +22,16 @@ export function Sidebar({ onImport }) {
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 space-y-1 mb-6">
+      <nav className="flex-1 space-y-2 mb-6">
         <button
           onClick={() => setSelectedTag(null)}
-          className={`w-full flex items-center gap-4 px-4 py-3 rounded-lg transition-all duration-200 font-headline font-semibold ${
+          className={`w-full flex items-center gap-4 px-4 py-3 rounded-lg transition-all duration-200 font-headline font-bold ${
             selectedTag === null
-              ? 'bg-surface-container-high text-secondary'
-              : 'text-on-surface/60 hover:text-on-surface hover:bg-surface-container-high'
+              ? 'bg-surface-container-high text-secondary scale-105'
+              : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high'
           }`}
         >
-          <Bookmark size={20} />
+          <span>📚</span>
           <span>Library</span>
         </button>
 

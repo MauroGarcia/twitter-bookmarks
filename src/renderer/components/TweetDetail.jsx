@@ -65,7 +65,7 @@ export function TweetDetail({ bookmark, tags = [], onClose }) {
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-surface-container rounded-xl max-w-2xl w-full max-h-96 overflow-y-auto shadow-cyan border border-outline-variant/10">
-        <div className="sticky top-0 bg-surface-container border-b border-outline-variant/10 p-6 flex items-center justify-between">
+        <div className="sticky top-0 bg-surface-container p-6 flex items-center justify-between border-b border-outline-variant/10">
           <h2 className="font-headline text-lg font-bold text-on-surface">Detalhes do Bookmark</h2>
           <button
             onClick={onClose}
