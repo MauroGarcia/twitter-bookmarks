@@ -738,6 +738,8 @@ function updateMockBookmark(id, updater) {
 function filterBookmarks(filters = {}) {
   const requestedTags = [...new Set([filters.tag, ...(Array.isArray(filters.tags) ? filters.tags : [])].filter(Boolean))]
     .map((tag) => `${tag}`.toLowerCase())
+  const requestedAuthors = [...new Set(Array.isArray(filters.authors) ? filters.authors : filters.author ? [filters.author] : [])]
+    .map((author) => `${author}`.toLowerCase())
   const searchFilter = filters.search ? `${filters.search}`.toLowerCase() : ''
   const view = filters.view || 'all'
 
@@ -755,6 +757,15 @@ function filterBookmarks(filters = {}) {
     items = items.filter((bookmark) =>
       requestedTags.every((requestedTag) =>
         (bookmark.tags || []).some((tag) => `${tag.name}`.toLowerCase() === requestedTag)
+      )
+    )
+  }
+
+  if (requestedAuthors.length > 0) {
+    items = items.filter((bookmark) =>
+      requestedAuthors.some((requestedAuthor) =>
+        `${bookmark.author_handle}`.toLowerCase().includes(requestedAuthor) ||
+        `${bookmark.author_name}`.toLowerCase().includes(requestedAuthor)
       )
     )
   }

@@ -48,11 +48,12 @@ function normalizePagination(filters = {}) {
 }
 
 function buildBookmarksQueryParts(filters = {}) {
-  const { tag, tags = [], search, author, view = 'all' } = filters
+  const { tag, tags = [], search, author, authors = [], view = 'all' } = filters
   const params = []
   const joins = []
   const conditions = []
   const requestedTags = [...new Set([tag, ...tags].filter(Boolean))]
+  const requestedAuthors = [...new Set([author, ...authors].filter(Boolean))]
 
   if (requestedTags.length > 0) {
     requestedTags.forEach((tagName, index) => {
@@ -69,10 +70,13 @@ function buildBookmarksQueryParts(filters = {}) {
     })
   }
 
-  if (author) {
-    const escapedAuthor = escapeLike(author)
-    conditions.push(`(b.author_handle LIKE ? ESCAPE '\\' OR b.author_name LIKE ? ESCAPE '\\')`)
-    params.push(`%${escapedAuthor}%`, `%${escapedAuthor}%`)
+  if (requestedAuthors.length > 0) {
+    const authorConditions = requestedAuthors.map(() => '(b.author_handle LIKE ? ESCAPE \'\\\\\' OR b.author_name LIKE ? ESCAPE \'\\\\\')')
+    conditions.push(`(${authorConditions.join(' OR ')})`)
+    requestedAuthors.forEach((currentAuthor) => {
+      const escapedAuthor = escapeLike(currentAuthor)
+      params.push(`%${escapedAuthor}%`, `%${escapedAuthor}%`)
+    })
   }
 
   if (search) {

@@ -48,7 +48,7 @@ export function Header({ onImport }) {
     <header className="sticky top-0 z-40 h-20 bg-[#0d0d1c]/60 backdrop-blur-md flex justify-between items-center px-12 py-4">
       <div className="flex items-center gap-6 flex-1">
         {/* Esquerda: Search */}
-        <div className="relative w-full max-w-md">
+        <div className="relative w-full max-w-[44rem]">
           <SearchBar />
         </div>
 

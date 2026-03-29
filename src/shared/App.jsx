@@ -17,6 +17,7 @@ export default function App() {
   const selectedTag = useAppStore((state) => state.selectedTag)
   const searchQuery = useAppStore((state) => state.searchQuery)
   const searchTagNames = useAppStore((state) => state.searchTagNames)
+  const searchAuthorHandles = useAppStore((state) => state.searchAuthorHandles)
   const loadBookmarks = useAppStore((state) => state.loadBookmarks)
   const hasHandledInitialFilters = useRef(false)
 
@@ -37,7 +38,7 @@ export default function App() {
     }
 
     loadBookmarks()
-  }, [activeView, selectedTag, searchQuery, searchTagNames])
+  }, [activeView, selectedTag, searchQuery, searchTagNames, searchAuthorHandles])
 
   const handleSelectBookmark = (bookmark) => {
     setSelectedBookmark(bookmark)
