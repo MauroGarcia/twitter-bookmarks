@@ -4,6 +4,8 @@ import { TagBadge } from './TagBadge'
 import { Avatar } from './ui/Avatar'
 import { Badge } from './ui/Badge'
 
+const TWEET_TOKEN_REGEX = /(@\w+)|(https?:\/\/\S+)/g
+
 function formatTimestamp(value) {
   if (!value) return 'Unknown date'
 
@@ -30,18 +32,16 @@ function getCardTone(variant) {
   return 'bg-surface-container-high hover:bg-surface-bright'
 }
 
-export function TweetText({ text, className = '' }) {
+export const TweetText = memo(function TweetText({ text, className = '' }) {
   if (!text) return null
-
-  const tokenRegex = /(@\w+)|(https?:\/\/\S+)/g
 
   function renderLine(line) {
     const parts = []
     let lastIndex = 0
     let match
 
-    tokenRegex.lastIndex = 0
-    while ((match = tokenRegex.exec(line)) !== null) {
+    TWEET_TOKEN_REGEX.lastIndex = 0
+    while ((match = TWEET_TOKEN_REGEX.exec(line)) !== null) {
       if (match.index > lastIndex) {
         parts.push({ type: 'text', value: line.slice(lastIndex, match.index) })
       }
@@ -90,7 +90,7 @@ export function TweetText({ text, className = '' }) {
       ))}
     </p>
   )
-}
+})
 
 export const BookmarkCard = memo(function BookmarkCard({
   bookmark,
