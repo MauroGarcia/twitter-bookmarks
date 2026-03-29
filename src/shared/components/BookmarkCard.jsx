@@ -130,6 +130,7 @@ export const BookmarkCard = memo(function BookmarkCard({
     <article
       onClick={onClick}
       className={`group relative w-full cursor-pointer overflow-hidden rounded-layout border border-outline-variant/10 p-6 shadow-cyan transition-all duration-300 ${getCardTone(variant)} ${className}`}
+      data-testid={`bookmark-card-${bookmark.id}`}
     >
       {coverImage && (
         <div className="mb-5 aspect-video overflow-hidden rounded-layout border border-outline-variant/10">
@@ -160,6 +161,7 @@ export const BookmarkCard = memo(function BookmarkCard({
               : 'text-on-surface-variant hover:text-[#ffb347]'
           }`}
           title={bookmark.is_favorite ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
+          data-testid={`bookmark-favorite-${bookmark.id}`}
         >
           <Star
             size={20}
@@ -230,6 +232,7 @@ export const BookmarkCard = memo(function BookmarkCard({
                 : 'border-outline-variant/10 bg-surface-container-high text-on-surface-variant hover:text-secondary'
             }`}
             title={bookmark.is_archived ? 'Desarquivar' : 'Arquivar'}
+            data-testid={`bookmark-archive-${bookmark.id}`}
           >
             <Archive size={14} />
             {bookmark.is_archived ? 'Arquivado' : 'Arquivar'}

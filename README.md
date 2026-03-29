@@ -48,6 +48,8 @@ npm run dev       # Electron em modo dev
 npm run dev:web   # Versao web compartilhada
 npm run build     # Build completo do Electron
 npm run build:web # Build da versao web
+npm run test:e2e  # Executa a suite E2E com Playwright
+npm run test:e2e:headed # Executa a suite E2E abrindo o navegador
 npm run pack      # Empacota sem instalador
 npm run dist      # Gera instalador NSIS
 npm run seed:mock # Popula dados mock para testes manuais

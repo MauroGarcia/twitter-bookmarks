@@ -74,6 +74,7 @@ export function Header({ onImport }) {
                   ? 'group relative cursor-pointer font-label text-sm font-medium text-[#00e3fd] transition-colors'
                   : 'group relative cursor-pointer font-label text-sm font-medium text-on-surface/70 transition-colors hover:text-primary'
               }
+              data-testid={`view-tab-${tab.id}`}
             >
               <span
                 ref={(element) => {

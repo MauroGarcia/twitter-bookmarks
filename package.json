@@ -9,6 +9,8 @@
     "build": "electron-vite build",
     "build:web": "vite build --config vite.web.config.mjs",
     "preview": "electron-vite preview",
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed",
     "pack": "npm run build && electron-builder --dir",
     "dist": "npm run build && electron-builder",
     "seed:mock": "node tests/manual/seed-public-mock.mjs"
@@ -44,6 +46,7 @@
     "zustand": "^5.0.12"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "@tailwindcss/postcss": "^4.2.2",
     "@vitejs/plugin-react": "^4.7.0",
     "autoprefixer": "^10.4.27",

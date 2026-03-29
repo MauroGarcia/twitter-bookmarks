@@ -50,6 +50,7 @@ export function Sidebar() {
               ? 'flex w-full scale-105 items-center gap-4 rounded-layout bg-[#1e1e32] px-4 py-3 font-headline font-bold text-[#00e3fd] transition-all duration-300 hover:bg-[#24243a]'
               : 'flex w-full items-center gap-4 rounded-layout px-4 py-3 font-headline text-[#e6e3f9]/60 transition-colors duration-300 hover:bg-[#1e1e32] hover:text-[#00e3fd]'
             }
+            data-testid={`sidebar-nav-${section.id}`}
           >
             <span className="material-symbols-outlined">{section.icon}</span>
             <span className="flex-1 text-left">{section.label}</span>
@@ -78,6 +79,7 @@ export function Sidebar() {
                     ? 'flex w-full items-center gap-3 rounded-layout bg-[#1e1e32] px-4 py-3 text-sm font-semibold text-[#00e3fd] transition-colors duration-300'
                     : 'flex w-full items-center gap-3 rounded-layout px-4 py-3 text-sm text-on-surface-variant transition-colors duration-300 hover:bg-[#1e1e32] hover:text-[#e6e3f9]'
                   }
+                  data-testid={`sidebar-tag-${tag.name.toLowerCase().replace(/\s+/g, '-')}`}
                 >
                   <div
                     className="w-3 h-3 rounded-full flex-shrink-0"

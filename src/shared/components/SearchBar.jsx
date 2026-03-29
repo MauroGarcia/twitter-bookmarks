@@ -397,6 +397,7 @@ function BookmarkSearchInput() {
                 onMouseDown={(event) => event.preventDefault()}
                 onClick={() => commitTag(tag.name)}
                 className="flex w-full items-center gap-3 rounded-layout px-3 py-2 text-left transition-colors hover:bg-surface-container-high"
+                data-testid={`tag-suggestion-${normalizeSuggestionValue(tag.name)}`}
               >
                 <span className="h-3 w-3 rounded-full" style={{ backgroundColor: tag.color }} />
                 <span className="font-semibold text-on-surface">#{tag.name}</span>
@@ -413,6 +414,7 @@ function BookmarkSearchInput() {
                 onMouseDown={(event) => event.preventDefault()}
                 onClick={() => commitAuthor(author.handle)}
                 className="flex w-full items-center gap-3 rounded-layout px-3 py-2 text-left transition-colors hover:bg-surface-container-high"
+                data-testid={`author-suggestion-${normalizeSuggestionValue(author.handle)}`}
               >
                 <span className="inline-flex h-7 min-w-7 items-center justify-center rounded-full bg-primary/10 px-2 text-[10px] font-bold text-primary">
                   @
