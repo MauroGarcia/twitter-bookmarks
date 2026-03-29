@@ -1,4 +1,4 @@
-import { useDeferredValue, useEffect, useState } from 'react'
+import { startTransition, useDeferredValue, useEffect, useState } from 'react'
 import { useAppStore } from '../store/appStore'
 import { useDebounce } from '../hooks/useDebounce'
 import { Input } from './ui/Input'
@@ -13,13 +13,17 @@ export function SearchBar() {
 
   useEffect(() => {
     if (debouncedValue !== searchQuery) {
-      setSearchQuery(debouncedValue)
+      startTransition(() => {
+        setSearchQuery(debouncedValue)
+      })
     }
   }, [debouncedValue, searchQuery, setSearchQuery])
 
   const handleClear = () => {
     setInputValue('')
-    setSearchQuery('')
+    startTransition(() => {
+      setSearchQuery('')
+    })
   }
 
   return (

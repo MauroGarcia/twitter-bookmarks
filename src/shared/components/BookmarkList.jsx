@@ -1,4 +1,4 @@
-import { memo, useCallback, useMemo, useEffect, useRef } from 'react'
+import { memo, useCallback, useDeferredValue, useMemo, useEffect, useRef } from 'react'
 import { useAppStore } from '../store/appStore'
 import { BookmarkCard } from './BookmarkCard'
 import { Badge } from './ui/Badge'
@@ -109,6 +109,7 @@ export function BookmarkList({ onSelectBookmark }) {
   const toggleBookmarkFavorite = useAppStore((state) => state.toggleBookmarkFavorite)
   const toggleBookmarkArchived = useAppStore((state) => state.toggleBookmarkArchived)
   const sentinelRef = useRef(null)
+  const renderedBookmarks = useDeferredValue(bookmarks)
 
   const currentCopy = copyByView[activeView] || copyByView.all
 
@@ -138,17 +139,17 @@ export function BookmarkList({ onSelectBookmark }) {
     return () => observer.disconnect()
   }, [hasMoreBookmarks, isLoadingMore, loadMoreBookmarks])
 
-  const highlights = useMemo(() => buildHighlights(bookmarks), [bookmarks])
+  const highlights = useMemo(() => buildHighlights(renderedBookmarks), [renderedBookmarks])
   const transitioningBookmarkIdSet = useMemo(
     () => new Set(transitioningBookmarkIds),
     [transitioningBookmarkIds]
   )
   const totalLikes = useMemo(
-    () => bookmarks.reduce((sum, bookmark) => sum + (bookmark.like_count || 0), 0),
-    [bookmarks]
+    () => renderedBookmarks.reduce((sum, bookmark) => sum + (bookmark.like_count || 0), 0),
+    [renderedBookmarks]
   )
 
-  if (isLoading) {
+  if (isLoading && bookmarks.length === 0) {
     return (
       <div className="space-y-6">
         <div className="flex items-end justify-between">
@@ -191,7 +192,7 @@ export function BookmarkList({ onSelectBookmark }) {
     )
   }
 
-  if (bookmarks.length === 0) {
+  if (!isLoading && renderedBookmarks.length === 0) {
     return (
       <section className="rounded-layout border border-outline-variant/10 bg-surface-container p-10 text-center shadow-cyan">
         <p className="font-headline text-3xl font-bold text-on-surface">{currentCopy.emptyTitle}</p>
@@ -218,7 +219,7 @@ export function BookmarkList({ onSelectBookmark }) {
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_300px]">
         <div>
           <div className="columns-1 gap-8 md:columns-2 xl:columns-3 [column-gap:2rem]">
-            {bookmarks.map((bookmark, index) => (
+            {renderedBookmarks.map((bookmark, index) => (
               <BookmarkGridItem
                 key={bookmark.id}
                 bookmark={bookmark}
@@ -247,7 +248,7 @@ export function BookmarkList({ onSelectBookmark }) {
           <div className="mt-5 space-y-5">
             <StatCard
               label="Loaded now"
-              value={bookmarks.length}
+              value={renderedBookmarks.length}
               description="bookmarks prontos para explorar nesta home."
             />
 
