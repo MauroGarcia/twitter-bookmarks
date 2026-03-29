@@ -1,6 +1,11 @@
 {
   "version": 1,
   "skills": {
+    "electron": {
+      "source": "teachingai/full-stack-skills",
+      "sourceType": "github",
+      "computedHash": "ab90f92c4abdc6ff5f26cc387c13beca310986937ee51cecab02a89412181c79"
+    },
     "frontend-design": {
       "source": "anthropics/skills",
       "sourceType": "github",
