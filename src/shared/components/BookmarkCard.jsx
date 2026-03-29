@@ -1,19 +1,6 @@
 import { ExternalLink, Heart, Images, Link2, Repeat2 } from 'lucide-react'
 import { TagBadge } from './TagBadge'
 
-function parseJsonList(value) {
-  if (!value) return []
-
-  if (Array.isArray(value)) return value
-
-  try {
-    const parsed = JSON.parse(value)
-    return Array.isArray(parsed) ? parsed : []
-  } catch {
-    return []
-  }
-}
-
 function formatMetric(value) {
   if (value >= 1000) {
     return `${(value / 1000).toFixed(1).replace('.0', '')}k`
@@ -48,9 +35,71 @@ function getCardTone(variant) {
   return 'bg-surface-container-high hover:bg-surface-bright'
 }
 
+export function TweetText({ text, className = '' }) {
+  if (!text) return null
+
+  const tokenRegex = /(@\w+)|(https?:\/\/\S+)/g
+
+  function renderLine(line) {
+    const parts = []
+    let lastIndex = 0
+    let match
+
+    tokenRegex.lastIndex = 0
+    while ((match = tokenRegex.exec(line)) !== null) {
+      if (match.index > lastIndex) {
+        parts.push({ type: 'text', value: line.slice(lastIndex, match.index) })
+      }
+      if (match[1]) {
+        parts.push({ type: 'mention', value: match[1] })
+      } else {
+        parts.push({ type: 'url', value: match[2] })
+      }
+      lastIndex = match.index + match[0].length
+    }
+    if (lastIndex < line.length) {
+      parts.push({ type: 'text', value: line.slice(lastIndex) })
+    }
+
+    return parts.map((part, i) => {
+      if (part.type === 'mention') {
+        return <span key={i} className="text-primary">{part.value}</span>
+      }
+      if (part.type === 'url') {
+        return (
+          <a
+            key={i}
+            href={part.value}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="text-primary hover:underline break-all"
+          >
+            {part.value}
+          </a>
+        )
+      }
+      return part.value
+    })
+  }
+
+  const lines = text.split('\n')
+
+  return (
+    <p className={className}>
+      {lines.map((line, lineIndex) => (
+        <span key={lineIndex}>
+          {renderLine(line)}
+          {lineIndex < lines.length - 1 && <br />}
+        </span>
+      ))}
+    </p>
+  )
+}
+
 export function BookmarkCard({ bookmark, tags = [], variant = 'default', className = '', onClick }) {
-  const mediaUrls = parseJsonList(bookmark.media_urls)
-  const linkItems = parseJsonList(bookmark.urls)
+  const mediaUrls = bookmark.mediaUrls || []
+  const linkItems = bookmark.linkItems || []
   const coverImage = mediaUrls[0] || null
 
   return (
@@ -102,9 +151,32 @@ export function BookmarkCard({ bookmark, tags = [], variant = 'default', classNa
         </div>
       </div>
 
-      <p className={`font-body leading-relaxed text-on-surface ${variant === 'feature' ? 'mb-6 text-base' : 'mb-5 text-sm'} ${coverImage ? 'line-clamp-4' : 'line-clamp-5'}`}>
-        {bookmark.full_text}
-      </p>
+      <TweetText
+        text={bookmark.full_text}
+        className={`font-body leading-relaxed text-on-surface ${variant === 'feature' ? 'mb-4 text-base' : 'mb-4 text-sm'} line-clamp-5`}
+      />
+
+      {bookmark.quoted_tweet && (
+        <div className="mb-5 rounded-lg border border-outline-variant/20 bg-surface-container-highest/60 p-3">
+          <div className="mb-1.5 flex items-center gap-2">
+            {bookmark.quoted_tweet.author_avatar_url ? (
+              <img
+                src={bookmark.quoted_tweet.author_avatar_url}
+                alt={bookmark.quoted_tweet.author_name}
+                className="h-5 w-5 rounded-full object-cover"
+              />
+            ) : null}
+            <span className="text-xs font-bold text-on-surface">{bookmark.quoted_tweet.author_name}</span>
+            <span className="text-xs text-on-surface-variant">@{bookmark.quoted_tweet.author_handle}</span>
+            <span className="text-xs text-on-surface-variant">·</span>
+            <span className="text-xs text-on-surface-variant">{formatTimestamp(bookmark.quoted_tweet.created_at)}</span>
+          </div>
+          <TweetText
+            text={bookmark.quoted_tweet.full_text}
+            className="line-clamp-3 text-xs leading-relaxed text-on-surface-variant"
+          />
+        </div>
+      )}
 
       {(tags.length > 0 || linkItems.length > 0) && (
         <div className="mb-5 flex flex-wrap gap-2">

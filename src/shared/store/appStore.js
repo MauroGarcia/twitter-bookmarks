@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { api } from '../services/api'
 import { mockApi } from '../mock/mockApi'
+import { normalizeBookmarks } from '../lib/bookmark-utils'
 
 export const useAppStore = create((set, get) => ({
   // Estado
@@ -12,6 +13,7 @@ export const useAppStore = create((set, get) => ({
   stats: { bookmarksCount: 0, tagsCount: 0, notesCount: 0 },
   isLoading: false,
   isUsingMockData: false,
+  bookmarksRequestId: 0,
   importDialog: false,
   editTagDialog: false,
   editingTag: null,
@@ -36,15 +38,47 @@ export const useAppStore = create((set, get) => ({
       tag: state.selectedTag,
       search: state.searchQuery
     }
-    set({ isLoading: true })
+    const requestId = state.bookmarksRequestId + 1
+    const shouldPreferMockData = state.isUsingMockData
+
+    set({
+      isLoading: true,
+      bookmarksRequestId: requestId
+    })
+
     try {
+      if (shouldPreferMockData) {
+        const mockBookmarks = await mockApi.getBookmarksWithTags(filters)
+        const mockStats = await mockApi.getStats()
+
+        if (get().bookmarksRequestId !== requestId) {
+          return
+        }
+
+        set({
+          bookmarks: normalizeBookmarks(mockBookmarks),
+          stats: mockStats,
+          isUsingMockData: true
+        })
+        return
+      }
+
       const bookmarks = await api.getBookmarksWithTags(filters)
+
+      if (get().bookmarksRequestId !== requestId) {
+        return
+      }
 
       if (bookmarks.length === 0 && !state.selectedTag && !state.searchQuery) {
         const mockBookmarks = await mockApi.getBookmarksWithTags(filters)
         const mockStats = await mockApi.getStats()
+
+        if (get().bookmarksRequestId !== requestId) {
+          return
+        }
+
         set({
-          bookmarks: mockBookmarks,
+          bookmarks: normalizeBookmarks(mockBookmarks),
           stats: mockStats,
           isUsingMockData: true
         })
@@ -52,23 +86,30 @@ export const useAppStore = create((set, get) => ({
       }
 
       set({
-        bookmarks,
+        bookmarks: normalizeBookmarks(bookmarks),
         isUsingMockData: false
       })
     } catch (error) {
       console.error('Erro ao carregar bookmarks:', error)
 
-      if (!state.selectedTag && !state.searchQuery) {
+      if (!state.selectedTag && !state.searchQuery || shouldPreferMockData) {
         const mockBookmarks = await mockApi.getBookmarksWithTags(filters)
         const mockStats = await mockApi.getStats()
+
+        if (get().bookmarksRequestId !== requestId) {
+          return
+        }
+
         set({
-          bookmarks: mockBookmarks,
+          bookmarks: normalizeBookmarks(mockBookmarks),
           stats: mockStats,
           isUsingMockData: true
         })
       }
     } finally {
-      set({ isLoading: false })
+      if (get().bookmarksRequestId === requestId) {
+        set({ isLoading: false })
+      }
     }
   },
 

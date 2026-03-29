@@ -1,9 +1,11 @@
+import { normalizeBookmarks } from '../lib/bookmark-utils'
+
 const rawMockBookmarks = [
   {
     tweet: {
       id: '1775925658427793889',
       created_at: '2024-04-04T11:37:00Z',
-      full_text: 'Vercel detalha uma revisão de preços de infraestrutura com cobrança mais granular, custos menores para funções e bandwidth, e foco em otimização de gasto.',
+      full_text: "We're improving the pricing of our infrastructure products:\n\n◆ Pay exactly for what you use, in granular increments\n◆ Lower prices for essentials (bandwidth & functions)\n◆ New primitives for easier spend optimization\n◆ Our hobby tier remains free\nhttps://t.co/VHfHzU3dGG",
       user: {
         id: '100001',
         name: 'Vercel',
@@ -24,7 +26,7 @@ const rawMockBookmarks = [
     tweet: {
       id: '1735719381739454730',
       created_at: '2023-12-15T12:52:00Z',
-      full_text: 'Vercel anuncia que o v0 foi aberto para todos, com geração de UI a partir de texto ou imagens em poucos segundos.',
+      full_text: 'v0 is now open for everyone.\n\nGenerate UI in seconds with text or images.\nhttps://t.co/nojFCpeGx1',
       user: {
         id: '100001',
         name: 'Vercel',
@@ -45,7 +47,7 @@ const rawMockBookmarks = [
     tweet: {
       id: '2027062351724527723',
       created_at: '2026-02-26T11:45:00Z',
-      full_text: 'OpenAI Developers apresenta um fluxo de code to design to code, com colaboração em Figma dentro do Codex sem quebrar o fluxo de implementação.',
+      full_text: 'Introducing a code → design → code workflow in Codex ✨\n\nCollaborate in Figma directly from your coding environment — without ever breaking your implementation flow.',
       user: {
         id: '100002',
         name: 'OpenAI Developers',
@@ -66,7 +68,7 @@ const rawMockBookmarks = [
     tweet: {
       id: '2001419753722909149',
       created_at: '2025-12-17T17:30:00Z',
-      full_text: 'OpenAI Developers divulga novidades do Apps SDK em beta, incluindo apps de exemplo open source, uma UI library para interfaces nativas de chat e um quickstart guiado.',
+      full_text: 'Apps in ChatGPT are powered by the Apps SDK (now in beta).\n\nNew resources include:\n• Open-source example apps\n• An open-source UI library for chat-native interfaces\n• A quickstart guide with step-by-step instructions\nhttps://t.co/pj4gUgso22',
       user: {
         id: '100002',
         name: 'OpenAI Developers',
@@ -87,7 +89,7 @@ const rawMockBookmarks = [
     tweet: {
       id: '1950240351547248941',
       created_at: '2025-07-29T13:01:00Z',
-      full_text: 'OpenAI apresenta o study mode como um passo inicial para melhorar aprendizagem no ChatGPT em colaboração com educadores e pesquisadores.',
+      full_text: "Built in collaboration with educators and experts, study mode is our first step toward improving learning in ChatGPT.\n\nEducation is a key AI frontier, and through NextGenAI and Stanford's SCALE Initiative, we're running longer term studies to further understand how AI tools shape…",
       user: {
         id: '100003',
         name: 'OpenAI',
@@ -105,7 +107,7 @@ const rawMockBookmarks = [
     tweet: {
       id: '1894583079404277864',
       created_at: '2025-02-25T20:59:00Z',
-      full_text: 'OpenAI confirma o rollout do deep research para usuários Plus, Team, Edu e Enterprise do ChatGPT.',
+      full_text: 'Rollout complete ✅ https://t.co/8yQgDJEPBc',
       user: {
         id: '100003',
         name: 'OpenAI',
@@ -126,7 +128,7 @@ const rawMockBookmarks = [
     tweet: {
       id: '1894107752479252541',
       created_at: '2025-02-24T14:30:00Z',
-      full_text: 'Anthropic descreve como o modo de extended thinking do Claude melhora o raciocínio em problemas difíceis e permite controlar o orçamento de pensamento.',
+      full_text: "Claude's extended thinking mode gives it an impressive boost in intelligence to tackle difficult problems.\n\nDevelopers can even set a \"thinking budget\" to control precisely how long Claude spends on a problem.",
       user: {
         id: '100004',
         name: 'Anthropic',
@@ -144,7 +146,7 @@ const rawMockBookmarks = [
     tweet: {
       id: '1846194917720088721',
       created_at: '2024-10-15T10:22:00Z',
-      full_text: 'Anthropic publica uma atualização relevante da Responsible Scaling Policy, ligando medidas de segurança às capacidades dos modelos.',
+      full_text: "We've published a significant update to our Responsible Scaling Policy, which matches safety and security measures to an AI model's capabilities. \n\nRead more here: https://t.co/bBc8YaF3j9",
       user: {
         id: '100004',
         name: 'Anthropic',
@@ -165,7 +167,7 @@ const rawMockBookmarks = [
     tweet: {
       id: '1775154908527784236',
       created_at: '2024-04-02T06:34:00Z',
-      full_text: 'Cloudflare lança Workers em Python em open beta e destaca mudanças no runtime, deploy, linking dinâmico e snapshots de memória.',
+      full_text: 'Introducing Cloudflare Workers in Python, now in open beta! We\'ve revamped our systems to support Python, from the runtime to deployment. Learn about Python Worker\'s lifecycle, dynamic linking, and memory snapshots in this post. https://t.co/R3a6bLKlSd #DeveloperWeek',
       user: {
         id: '100005',
         name: 'Cloudflare',
@@ -186,7 +188,7 @@ const rawMockBookmarks = [
     tweet: {
       id: '1962927193203281981',
       created_at: '2025-09-02T12:14:00Z',
-      full_text: 'Cloudflare relata impacto de um incidente de segurança ligado à Salesloft, com timeline, resposta do time e recomendações práticas para outras empresas.',
+      full_text: 'A recent security issue announced by Salesloft has impacted many companies, including Cloudflare. This post provides a timeline of the attack, details our response, and offers security recommendations to help other organizations mitigate the effects of this attack.…',
       user: {
         id: '100005',
         name: 'Cloudflare',
@@ -204,7 +206,7 @@ const rawMockBookmarks = [
     tweet: {
       id: '1910317775244911063',
       created_at: '2025-04-10T09:03:00Z',
-      full_text: 'Cloudflare Developers diz que o Super Slurper ficou 5x mais rápido para migrar dados de S3 e serviços compatíveis para o R2, usando Workers, Durable Objects e Queues.',
+      full_text: 'Super Slurper just got 5x faster! 🚀\n(Try saying that three times fast.)\n\nMigrate data from S3, Google Cloud Storage, or any S3-compatible storage straight to Cloudflare R2 -- now in 1/5 the time.\n\nLink in 🧵 showing how we built it using Workers, Durable Objects, and Queues.…',
       user: {
         id: '100006',
         name: 'Cloudflare Developers',
@@ -214,7 +216,7 @@ const rawMockBookmarks = [
       favorite_count: 155,
       retweet_count: 11,
       extended_entities: {
-        media: [{ media_url_https: 'https://placehold.co/1200x675/png?text=Cloudflare+R2+Migration' }]
+        media: [{ media_url_https: 'https://cf-assets.www.cloudflare.com/zkvhlag99gkb/6DndD4zbnsrwlVNmu7qH6N/41285e2458613700ed7054045c9ab620/OG_Share_2024__37_.png' }]
       },
       entities: {
         urls: [
@@ -228,7 +230,7 @@ const rawMockBookmarks = [
     tweet: {
       id: '2023827897627377783',
       created_at: '2026-02-17T13:32:00Z',
-      full_text: 'Cursor anuncia integração com a plataforma de desenvolvedores da Cloudflare para construir servidores MCP e gerenciar Workers pelo plugin.',
+      full_text: 'Cursor now integrates with the Cloudflare developer platform 🤝\n\nBuild MCP servers and manage Workers directly from the plugin — without ever leaving your editor.',
       user: {
         id: '100007',
         name: 'Cursor',
@@ -246,7 +248,7 @@ const rawMockBookmarks = [
     tweet: {
       id: '1921753445624664163',
       created_at: '2025-05-11T22:25:00Z',
-      full_text: 'GitHub promove novos recursos do Dependabot para priorizar alertas de segurança com base em risco real e reduzir fadiga operacional.',
+      full_text: 'Alert fatigue is real. 😔 Drowning in Dependabot notifications? Good news! Dependabot now helps prioritize security alerts based on actual risk, cutting through the noise. 🙏\n\nFocus your efforts on the vulnerabilities that truly matter. Learn how to use these prioritization…',
       user: {
         id: '100008',
         name: 'GitHub',
@@ -256,7 +258,7 @@ const rawMockBookmarks = [
       favorite_count: 119,
       retweet_count: 18,
       extended_entities: {
-        media: [{ media_url_https: 'https://placehold.co/1200x675/png?text=GitHub+Dependabot' }]
+        media: [{ media_url_https: 'https://github.blog/wp-content/uploads/2024/02/Security-DarkMode-2-2.png?resize=1200%2C630' }]
       },
       entities: {
         urls: [{ url: 'https://x.com/github/status/1921753445624664163', expanded_url: 'https://x.com/github/status/1921753445624664163' }]
@@ -267,7 +269,7 @@ const rawMockBookmarks = [
     tweet: {
       id: '2026072088952316238',
       created_at: '2026-02-23T15:10:00Z',
-      full_text: 'GitHub Status informa latência elevada e timeouts na busca de código enquanto a equipe mitigava problemas em um shard afetado.',
+      full_text: 'We are investigating elevated latency and timeouts affecting code search. An impacted shard has been identified and the team is actively mitigating. We will provide updates as we have more information.\n\nhttps://githubstatus.com',
       user: {
         id: '100009',
         name: 'GitHub Status',
@@ -288,7 +290,7 @@ const rawMockBookmarks = [
     tweet: {
       id: '2025947915261194477',
       created_at: '2026-02-23T09:56:00Z',
-      full_text: 'GitHub Status reporta indisponibilidade degradada do modelo Haiku 4.5 dentro do Copilot Chat, VS Code e outros produtos do Copilot por problema em provedor upstream.',
+      full_text: 'We are investigating degraded availability of the Claude Haiku 4.5 model in Copilot Chat, VS Code, and other Copilot products. This is caused by an issue with an upstream provider.\n\nhttps://githubstatus.com',
       user: {
         id: '100009',
         name: 'GitHub Status',
@@ -309,7 +311,7 @@ const rawMockBookmarks = [
     tweet: {
       id: '1965770108178931833',
       created_at: '2025-09-10T09:31:00Z',
-      full_text: 'GitHub Status avisa que runners hospedados do Actions estavam demorando a subir, causando filas longas e falhas de jobs.',
+      full_text: 'Actions hosted runners are taking longer to come online, leading to high wait times or job failures. https://t.co/dSTeFm4CCS',
       user: {
         id: '100009',
         name: 'GitHub Status',
@@ -330,7 +332,7 @@ const rawMockBookmarks = [
     tweet: {
       id: '2026043597653438700',
       created_at: '2026-02-23T15:16:00Z',
-      full_text: 'GitHub Status comunica investigação de degradação em Issues e Pull Requests.',
+      full_text: 'We are investigating degraded performance affecting Issues and Pull Requests.\n\nhttps://githubstatus.com',
       user: {
         id: '100009',
         name: 'GitHub Status',
@@ -351,7 +353,7 @@ const rawMockBookmarks = [
     tweet: {
       id: '2026698251278143922',
       created_at: '2026-02-25T09:38:00Z',
-      full_text: 'GitHub Status sinaliza investigação sobre degradação no Copilot.',
+      full_text: 'We are investigating a degradation affecting Copilot.\n\nhttps://githubstatus.com',
       user: {
         id: '100009',
         name: 'GitHub Status',
@@ -372,7 +374,7 @@ const rawMockBookmarks = [
     tweet: {
       id: '1631540920775593985',
       created_at: '2023-03-03T00:24:00Z',
-      full_text: 'Supabase destaca uma atualização grande no starter de Subscription Payments com Next.js e Vercel, incluindo dependências modernizadas.',
+      full_text: 'The @nextjs Subscription Payments @vercel starter template just got a major dependency lift thanks to the awesome @nezdemkovski 💚\n\nCheck it out 👉 https://t.co/Qrrn2U8SJL',
       user: {
         id: '100010',
         name: 'Supabase',
@@ -382,7 +384,7 @@ const rawMockBookmarks = [
       favorite_count: 0,
       retweet_count: 0,
       extended_entities: {
-        media: [{ media_url_https: 'https://placehold.co/1200x675/png?text=Supabase+Starter+Template' }]
+        media: [{ media_url_https: 'https://opengraph.githubassets.com/fc90c4ca4f327c7a0a1e8f6430c3aff064021d1f17e9a9e4e47d7ecc2d09532c/vercel/nextjs-subscription-payments/pull/171' }]
       },
       entities: {
         urls: [
@@ -396,7 +398,7 @@ const rawMockBookmarks = [
     tweet: {
       id: '2026580588527043052',
       created_at: '2026-02-25T00:50:00Z',
-      full_text: 'Clever Cloud mostra que conseguiu subir um app Vinext em menos de cinco minutos, testando o replacement baseado em Vite fora do Workers.',
+      full_text: 'We deployed a Vinext app in under 5 minutes 👀\nThe Vite-based "drop-in" Next.js replacement announced by @Cloudflare.\nWe tested it outside Workers: Node/Bun app, push to Clever Cloud. We even used an AI to generate and deploy the example.\nFull story 👉 https://clever.cloud/blog/engineering/2026/02/25/how-we-deployed-a-vinext-application/',
       user: {
         id: '100011',
         name: 'Clever Cloud',
@@ -406,7 +408,7 @@ const rawMockBookmarks = [
       favorite_count: 17,
       retweet_count: 5,
       extended_entities: {
-        media: [{ media_url_https: 'https://placehold.co/1200x675/png?text=Vinext+on+Clever+Cloud' }]
+        media: [{ media_url_https: 'https://cdn.clever-cloud.com/uploads/2026/02/2026-02-25-clever-cloud-banniere-blog-vinext-en.png' }]
       },
       entities: {
         urls: [
@@ -420,7 +422,7 @@ const rawMockBookmarks = [
     tweet: {
       id: '2026421496374345892',
       created_at: '2026-02-24T17:18:00Z',
-      full_text: 'Max Stoiber reage ao experimento do Vinext e destaca o impacto de reconstruir uma experiência estilo Next.js sobre Vite em uma semana com baixo custo de tokens.',
+      full_text: 'This is insane. Next.js rebuilt based on Vite, and it only took one week and $1,100 in tokens?!?!\n\nCode really doesn\'t matter anymore. Crazy.',
       user: {
         id: '100012',
         name: 'Max Stoiber',
@@ -429,6 +431,13 @@ const rawMockBookmarks = [
       },
       favorite_count: 3800,
       retweet_count: 157,
+      quoted_tweet: {
+        author_name: 'Cloudflare',
+        author_handle: 'Cloudflare',
+        author_avatar_url: 'https://unavatar.io/x/Cloudflare',
+        created_at: '2026-02-24T10:00:00Z',
+        full_text: 'We rebuilt Next.js in a week. No, really.\n\nThe team ported the framework to run natively on Workers to prove what\'s possible with edge-first architecture. Dive into the technical hurdles we solved to eliminate Node.js dependencies.'
+      },
       entities: {
         urls: [
           { url: 'https://x.com/mxstbr/status/2026421496374345892', expanded_url: 'https://x.com/mxstbr/status/2026421496374345892' },
@@ -456,12 +465,13 @@ function transformBookmark(item) {
     has_media: (tweet.extended_entities?.media?.length ?? 0) > 0,
     media_urls: tweet.extended_entities?.media?.map((media) => media.media_url_https) || null,
     urls: tweet.entities?.urls?.map((url) => ({ url: url.url, expanded_url: url.expanded_url })) || null,
+    quoted_tweet: tweet.quoted_tweet || null,
     raw_json: tweet,
     tags: []
   }
 }
 
-const mockBookmarks = rawMockBookmarks.map(transformBookmark)
+const mockBookmarks = normalizeBookmarks(rawMockBookmarks.map(transformBookmark))
 
 function filterBookmarks(filters = {}) {
   const tagFilter = filters.tag ? `${filters.tag}`.toLowerCase() : ''

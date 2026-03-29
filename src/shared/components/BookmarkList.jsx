@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { useAppStore } from '../store/appStore'
 import { BookmarkCard } from './BookmarkCard'
 
@@ -12,14 +13,7 @@ function formatCount(value) {
 function buildHighlights(bookmarks) {
   const uniqueAuthors = new Set(bookmarks.map((bookmark) => bookmark.author_handle).filter(Boolean)).size
   const mediaCount = bookmarks.filter((bookmark) => Boolean(bookmark.has_media)).length
-  const linkCount = bookmarks.filter((bookmark) => {
-    try {
-      const urls = bookmark.urls ? JSON.parse(bookmark.urls) : []
-      return Array.isArray(urls) && urls.length > 0
-    } catch {
-      return false
-    }
-  }).length
+  const linkCount = bookmarks.filter((bookmark) => bookmark.linkItems?.length > 0).length
 
   return [
     {
@@ -42,7 +36,14 @@ function buildHighlights(bookmarks) {
 }
 
 export function BookmarkList({ onSelectBookmark }) {
-  const { bookmarks, isLoading } = useAppStore()
+  const bookmarks = useAppStore((state) => state.bookmarks)
+  const isLoading = useAppStore((state) => state.isLoading)
+  const highlights = useMemo(() => buildHighlights(bookmarks), [bookmarks])
+  const topBookmarks = useMemo(() => bookmarks.slice(0, 12), [bookmarks])
+  const totalLikes = useMemo(
+    () => bookmarks.reduce((sum, bookmark) => sum + (bookmark.like_count || 0), 0),
+    [bookmarks]
+  )
 
   if (isLoading) {
     return (
@@ -97,10 +98,6 @@ export function BookmarkList({ onSelectBookmark }) {
       </section>
     )
   }
-
-  const highlights = buildHighlights(bookmarks)
-  const topBookmarks = bookmarks.slice(0, 12)
-  const totalLikes = bookmarks.reduce((sum, bookmark) => sum + (bookmark.like_count || 0), 0)
 
   return (
     <section className="space-y-10">

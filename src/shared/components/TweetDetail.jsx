@@ -3,6 +3,7 @@ import { X, Heart, Repeat2, ExternalLink, Save, Trash2 } from 'lucide-react'
 import { TagBadge } from './TagBadge'
 import { TagSelector } from './TagSelector'
 import { ConfirmDialog } from './ConfirmDialog'
+import { TweetText } from './BookmarkCard'
 import { useAppStore } from '../store/appStore'
 import { api } from '../services/api'
 
@@ -65,7 +66,7 @@ export function TweetDetail({ bookmark, tags = [], onClose }) {
 
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-surface-container rounded-xl max-w-2xl w-full max-h-96 overflow-y-auto shadow-cyan border border-outline-variant/10">
+      <div className="bg-surface-container rounded-xl max-w-2xl w-full max-h-[80vh] overflow-y-auto shadow-cyan border border-outline-variant/10">
         <div className="sticky top-0 bg-surface-container p-6 flex items-center justify-between border-b border-outline-variant/10">
           <h2 className="font-headline text-lg font-bold text-on-surface">Detalhes do Bookmark</h2>
           <button
@@ -92,7 +93,40 @@ export function TweetDetail({ bookmark, tags = [], onClose }) {
                 <p className="text-sm text-on-surface-variant">@{bookmark.author_handle}</p>
               </div>
             </div>
-            <p className="font-body text-on-surface/80 mb-3">{bookmark.full_text}</p>
+            <TweetText text={bookmark.full_text} className="font-body text-on-surface/80 mb-3" />
+
+            {bookmark.mediaUrls?.length > 0 && (
+              <div className="mb-3 overflow-hidden rounded-lg border border-outline-variant/10">
+                <img
+                  src={bookmark.mediaUrls[0]}
+                  alt={bookmark.author_name}
+                  className="w-full object-cover"
+                />
+              </div>
+            )}
+
+            {bookmark.quoted_tweet && (
+              <div className="mb-3 rounded-lg border border-outline-variant/20 bg-surface-container-highest/60 p-3">
+                <div className="mb-1.5 flex items-center gap-2">
+                  {bookmark.quoted_tweet.author_avatar_url && (
+                    <img
+                      src={bookmark.quoted_tweet.author_avatar_url}
+                      alt={bookmark.quoted_tweet.author_name}
+                      className="h-5 w-5 rounded-full object-cover"
+                    />
+                  )}
+                  <span className="text-xs font-bold text-on-surface">{bookmark.quoted_tweet.author_name}</span>
+                  <span className="text-xs text-on-surface-variant">@{bookmark.quoted_tweet.author_handle}</span>
+                  <span className="text-xs text-on-surface-variant">·</span>
+                  <span className="text-xs text-on-surface-variant">
+                    {bookmark.quoted_tweet.created_at
+                      ? new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(new Date(bookmark.quoted_tweet.created_at))
+                      : ''}
+                  </span>
+                </div>
+                <TweetText text={bookmark.quoted_tweet.full_text} className="text-xs leading-relaxed text-on-surface-variant" />
+              </div>
+            )}
 
             <div className="flex items-center gap-4 text-sm text-on-surface-variant">
               <button className="flex items-center gap-1 hover:text-error transition-colors">

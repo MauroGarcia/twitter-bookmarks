@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useAppStore } from './store/appStore'
 import { Sidebar } from './components/Sidebar'
 import { Header } from './components/Header'
@@ -15,6 +15,7 @@ export default function App() {
     searchQuery,
     loadBookmarks
   } = useAppStore()
+  const hasHandledInitialFilters = useRef(false)
 
   useEffect(() => {
     // Inicializar dados
@@ -23,6 +24,11 @@ export default function App() {
 
   // Recarregar quando filtros mudam
   useEffect(() => {
+    if (!hasHandledInitialFilters.current) {
+      hasHandledInitialFilters.current = true
+      return
+    }
+
     loadBookmarks()
   }, [selectedTag, searchQuery])
 

@@ -19,6 +19,27 @@ if (!fs.existsSync(DB_DIR)) {
 const db = new Database(DB_PATH)
 db.pragma('journal_mode = WAL')
 
+function escapeLike(value) {
+  return `${value}`.replace(/[\\%_]/g, '\\$&')
+}
+
+function buildFtsMatchQuery(value) {
+  const tokens = `${value}`
+    .trim()
+    .toLowerCase()
+    .match(/[^\s"']+/g)
+
+  if (!tokens || tokens.length === 0) {
+    return null
+  }
+
+  return tokens
+    .map((token) => token.replace(/"/g, '""'))
+    .filter(Boolean)
+    .map((token) => `"${token}"*`)
+    .join(' AND ')
+}
+
 // ============ SCHEMA ============
 export function initDb() {
   db.exec(`
@@ -73,37 +94,60 @@ export function initDb() {
     CREATE TRIGGER IF NOT EXISTS bookmarks_ad AFTER DELETE ON bookmarks BEGIN
       DELETE FROM bookmarks_fts WHERE id = old.id;
     END;
+
+    CREATE TRIGGER IF NOT EXISTS bookmarks_au AFTER UPDATE ON bookmarks BEGIN
+      UPDATE bookmarks_fts
+      SET full_text = new.full_text,
+          author_name = new.author_name,
+          author_handle = new.author_handle
+      WHERE rowid = new.rowid;
+    END;
+
+    CREATE INDEX IF NOT EXISTS idx_bookmarks_created_at ON bookmarks(created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_bookmark_tags_bookmark_id ON bookmark_tags(bookmark_id);
+    CREATE INDEX IF NOT EXISTS idx_bookmark_tags_tag_id_bookmark_id ON bookmark_tags(tag_id, bookmark_id);
+    CREATE INDEX IF NOT EXISTS idx_tags_name ON tags(name);
   `)
 }
 
 // ============ BOOKMARKS ============
 export function getBookmarks(filters = {}) {
   const { tag, search, author, limit = 20, offset = 0 } = filters
-
-  let query = `
-    SELECT DISTINCT b.* FROM bookmarks b
-    LEFT JOIN bookmark_tags bt ON b.id = bt.bookmark_id
-    LEFT JOIN tags t ON bt.tag_id = t.id
-    WHERE 1=1
-  `
   const params = []
+  const joins = []
+  const conditions = []
 
   if (tag) {
-    query += ` AND t.name = ?`
+    joins.push('INNER JOIN bookmark_tags bt ON b.id = bt.bookmark_id')
+    joins.push('INNER JOIN tags t ON bt.tag_id = t.id')
+    conditions.push('t.name = ?')
     params.push(tag)
   }
 
   if (author) {
-    query += ` AND (b.author_handle LIKE ? OR b.author_name LIKE ?)`
-    params.push(`%${author}%`, `%${author}%`)
+    const escapedAuthor = escapeLike(author)
+    conditions.push(`(b.author_handle LIKE ? ESCAPE '\\' OR b.author_name LIKE ? ESCAPE '\\')`)
+    params.push(`%${escapedAuthor}%`, `%${escapedAuthor}%`)
   }
 
   if (search) {
-    query += ` AND EXISTS (
-      SELECT 1 FROM bookmarks_fts WHERE bookmarks_fts.id = b.id
-      AND bookmarks_fts MATCH ?
-    )`
-    params.push(search)
+    const matchQuery = buildFtsMatchQuery(search)
+
+    if (matchQuery) {
+      joins.push('INNER JOIN bookmarks_fts ON bookmarks_fts.rowid = b.rowid')
+      conditions.push('bookmarks_fts MATCH ?')
+      params.push(matchQuery)
+    }
+  }
+
+  let query = `SELECT b.* FROM bookmarks b`
+
+  if (joins.length > 0) {
+    query += ` ${joins.join(' ')}`
+  }
+
+  if (conditions.length > 0) {
+    query += ` WHERE ${conditions.join(' AND ')}`
   }
 
   query += ` ORDER BY b.created_at DESC LIMIT ? OFFSET ?`
