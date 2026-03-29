@@ -13,6 +13,29 @@ function formatCount(value) {
   return `${value}`
 }
 
+function getBookmarkVariant(bookmarkId) {
+  const normalizedId = `${bookmarkId || ''}`
+
+  if (!normalizedId) {
+    return 'default'
+  }
+
+  let hash = 0
+  for (let index = 0; index < normalizedId.length; index += 1) {
+    hash = ((hash * 31) + normalizedId.charCodeAt(index)) >>> 0
+  }
+
+  if (hash % 4 === 1) {
+    return 'feature'
+  }
+
+  if (hash % 5 === 0) {
+    return 'accent'
+  }
+
+  return 'default'
+}
+
 function buildHighlights(bookmarks) {
   const uniqueAuthors = new Set(bookmarks.map((bookmark) => bookmark.author_handle).filter(Boolean)).size
   const mediaCount = bookmarks.filter((bookmark) => Boolean(bookmark.has_media)).length
@@ -224,7 +247,7 @@ export function BookmarkList({ onSelectBookmark }) {
                 key={bookmark.id}
                 bookmark={bookmark}
                 tags={bookmark.tags || []}
-                variant={index % 4 === 1 ? 'feature' : index % 5 === 0 ? 'accent' : 'default'}
+                variant={getBookmarkVariant(bookmark.id)}
                 isTransitioning={transitioningBookmarkIdSet.has(bookmark.id)}
                 onToggleFavorite={toggleBookmarkFavorite}
                 onToggleArchived={toggleBookmarkArchived}
