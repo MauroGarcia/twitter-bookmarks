@@ -38,6 +38,132 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+@layer components {
+  .modal-overlay {
+    @apply fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm;
+  }
+
+  .modal-container {
+    @apply w-full rounded-xl border border-outline-variant/10 bg-surface-container shadow-cyan;
+  }
+
+  .modal-header {
+    @apply sticky top-0 flex items-center justify-between border-b border-outline-variant/10 bg-surface-container p-6;
+  }
+
+  .btn-base {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg font-headline font-bold transition-all disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .btn-primary {
+    @apply bg-neon-gradient text-on-primary-fixed hover:opacity-90 active:scale-95;
+  }
+
+  .btn-secondary {
+    @apply bg-surface-container-high text-on-surface-variant hover:text-on-surface;
+  }
+
+  .btn-danger {
+    @apply border border-error/20 text-error hover:bg-error/10;
+  }
+
+  .btn-ghost {
+    @apply text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface;
+  }
+
+  .input-base {
+    @apply w-full rounded-lg border border-outline-variant/20 bg-surface-container-lowest px-3 py-2 text-sm text-on-surface placeholder:text-on-surface-variant/40 focus:outline-none focus:ring-1 focus:ring-secondary/40;
+  }
+
+  .input-shell {
+    @apply relative w-full;
+  }
+
+  .input-leading {
+    @apply pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant/60;
+  }
+
+  .input-trailing {
+    @apply absolute right-4 top-1/2 -translate-y-1/2;
+  }
+
+  .badge-base {
+    @apply inline-flex items-center gap-1 rounded-full;
+  }
+
+  .badge-primary {
+    @apply border border-primary/20 bg-primary/10 text-primary;
+  }
+
+  .badge-secondary {
+    @apply border border-secondary/20 bg-secondary/10 text-secondary;
+  }
+
+  .badge-tertiary {
+    @apply border border-tertiary/20 bg-tertiary/10 text-tertiary;
+  }
+
+  .badge-default {
+    @apply bg-surface-container-high text-on-surface-variant;
+  }
+
+  .badge-icon {
+    @apply inline-flex items-center justify-center rounded-full p-2;
+  }
+
+  .badge-icon-primary {
+    @apply bg-primary/10 text-primary;
+  }
+
+  .badge-icon-secondary {
+    @apply bg-secondary/10 text-secondary;
+  }
+
+  .badge-icon-tertiary {
+    @apply bg-tertiary/10 text-tertiary;
+  }
+
+  .badge-icon-default {
+    @apply bg-surface-container-high text-on-surface-variant;
+  }
+
+  .avatar-base {
+    @apply flex shrink-0 items-center justify-center rounded-full border border-outline-variant/30;
+  }
+
+  .avatar-fallback {
+    @apply bg-surface-container-highest font-bold text-on-surface-variant;
+  }
+
+  .avatar-sm {
+    @apply h-8 w-8 text-sm;
+  }
+
+  .avatar-md {
+    @apply h-10 w-10 text-sm;
+  }
+
+  .avatar-lg {
+    @apply h-12 w-12 text-base;
+  }
+
+  .icon-button {
+    @apply rounded-layout p-2 text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-secondary;
+  }
+
+  .section-label {
+    @apply font-label text-xs font-semibold uppercase tracking-[0.32em];
+  }
+
+  .stat-label {
+    @apply text-xs uppercase tracking-[0.24em] text-on-surface-variant;
+  }
+
+  .stat-card {
+    @apply rounded-layout bg-surface-container-high p-5;
+  }
+}
+
 .search-input {
   background-color: #000000;
   color: #e6e3f9;

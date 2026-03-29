@@ -1,13 +1,11 @@
 import clsx from 'clsx'
 import { X } from 'lucide-react'
+import { Badge } from './ui/Badge'
 
 export function TagBadge({ tag, removable = false, onRemove }) {
   return (
-    <span
-      className={clsx(
-        'inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium',
-        'text-white'
-      )}
+    <Badge
+      className={clsx('text-sm font-medium text-white', removable && 'pr-2')}
       style={{ backgroundColor: tag.color }}
     >
       {tag.name}
@@ -20,6 +18,6 @@ export function TagBadge({ tag, removable = false, onRemove }) {
           <X size={14} />
         </button>
       )}
-    </span>
+    </Badge>
   )
 }

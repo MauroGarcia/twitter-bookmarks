@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { Bell, Download, Settings } from 'lucide-react'
 import { SearchBar } from './SearchBar'
 import { useAppStore } from '../store/appStore'
+import { Button } from './ui/Button'
+import { IconButton } from './ui/IconButton'
 
 export function Header({ onImport }) {
   const activeView = useAppStore((state) => state.activeView)
@@ -84,19 +86,11 @@ export function Header({ onImport }) {
 
       {/* Direita: Ícones + Avatar */}
       <div className="flex items-center gap-4 ml-auto">
-        <button
-          onClick={onImport}
-          className="flex items-center gap-2 rounded-layout bg-surface-container-high px-5 py-2 text-sm font-semibold text-primary transition-all hover:bg-surface-bright"
-        >
-          <Download size={20} />
+        <Button onClick={onImport} variant="secondary" size="sm" icon={<Download size={20} />} className="text-primary hover:bg-surface-bright">
           Importar
-        </button>
-        <button className="rounded-layout p-2 text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-secondary">
-          <Settings size={20} />
-        </button>
-        <button className="rounded-layout p-2 text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-secondary">
-          <Bell size={20} />
-        </button>
+        </Button>
+        <IconButton icon={<Settings size={20} />} />
+        <IconButton icon={<Bell size={20} />} />
         <div className="w-9 h-9 rounded-full bg-surface-container-high border border-outline-variant/20"></div>
       </div>
     </header>

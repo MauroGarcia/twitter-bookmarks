@@ -1,6 +1,9 @@
 import { useMemo, useEffect, useRef } from 'react'
 import { useAppStore } from '../store/appStore'
 import { BookmarkCard } from './BookmarkCard'
+import { Badge } from './ui/Badge'
+import { SectionHeader } from './ui/SectionHeader'
+import { StatCard } from './ui/StatCard'
 
 function formatCount(value) {
   if (value >= 1000) {
@@ -157,43 +160,21 @@ export function BookmarkList({ onSelectBookmark }) {
 
   return (
     <section className="space-y-10">
-      <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
-        <div>
-          <p className="font-label text-xs font-semibold uppercase tracking-[0.32em] text-primary/80">
-            Dashboard Home
-          </p>
-          <h2 className="mt-2 font-headline text-4xl font-extrabold tracking-tight text-on-surface">
-            {currentCopy.title}
-          </h2>
-          <p className="mt-3 max-w-2xl text-sm text-on-surface-variant">
-            {currentCopy.description}
-          </p>
-        </div>
-
-        <div className="flex flex-wrap gap-2">
-          {highlights.map((item) => (
-            <span
-              key={item.label}
-              className={
-                item.tone === 'primary'
-                  ? 'rounded-full border border-primary/20 bg-primary/10 px-4 py-1.5 text-xs font-bold text-primary'
-                  : item.tone === 'secondary'
-                    ? 'rounded-full border border-secondary/20 bg-secondary/10 px-4 py-1.5 text-xs font-bold text-secondary'
-                    : item.tone === 'tertiary'
-                      ? 'rounded-full border border-tertiary/20 bg-tertiary/10 px-4 py-1.5 text-xs font-bold text-tertiary'
-                      : 'rounded-full bg-surface-container-high px-4 py-1.5 text-xs font-bold text-on-surface-variant'
-              }
-            >
-              {item.label}
-            </span>
-          ))}
-        </div>
-      </div>
+      <SectionHeader
+        label="Dashboard Home"
+        title={currentCopy.title}
+        description={currentCopy.description}
+        actions={highlights.map((item) => (
+          <Badge key={item.label} tone={item.tone}>
+            {item.label}
+          </Badge>
+        ))}
+      />
 
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_300px]">
         <div>
           <div className="columns-1 gap-8 md:columns-2 xl:columns-3 [column-gap:2rem]">
-          {bookmarks.map((bookmark, index) => (
+            {bookmarks.map((bookmark, index) => (
               <div
                 key={bookmark.id}
                 className={`mb-8 break-inside-avoid transition-all duration-300 ${
@@ -209,7 +190,7 @@ export function BookmarkList({ onSelectBookmark }) {
                   onClick={() => onSelectBookmark(bookmark)}
                 />
               </div>
-          ))}
+            ))}
           </div>
           <div ref={sentinelRef}>
             {(hasMoreBookmarks || isLoadingMore) && (
@@ -225,28 +206,26 @@ export function BookmarkList({ onSelectBookmark }) {
             Reading Pulse
           </p>
           <div className="mt-5 space-y-5">
-            <div className="rounded-layout bg-surface-container-high p-5">
-              <p className="text-xs uppercase tracking-[0.24em] text-on-surface-variant">Loaded now</p>
-              <p className="mt-2 font-headline text-4xl font-extrabold text-on-surface">{bookmarks.length}</p>
-              <p className="mt-2 text-sm text-on-surface-variant">bookmarks prontos para explorar nesta home.</p>
-            </div>
+            <StatCard
+              label="Loaded now"
+              value={bookmarks.length}
+              description="bookmarks prontos para explorar nesta home."
+            />
 
-            <div className="rounded-layout bg-surface-container-high p-5">
-              <p className="text-xs uppercase tracking-[0.24em] text-on-surface-variant">Total likes</p>
-              <p className="mt-2 font-headline text-4xl font-extrabold text-primary">{formatCount(totalLikes)}</p>
-              <p className="mt-2 text-sm text-on-surface-variant">
-                sinal agregado de relevância social entre os itens em destaque.
-              </p>
-            </div>
+            <StatCard
+              label="Total likes"
+              value={formatCount(totalLikes)}
+              color="primary"
+              description="sinal agregado de relevância social entre os itens em destaque."
+            />
 
-            <div className="rounded-layout bg-surface-container-high p-5">
-              <p className="text-xs uppercase tracking-[0.24em] text-on-surface-variant">What this proves</p>
+            <StatCard label="What this proves">
               <ul className="mt-3 space-y-3 text-sm text-on-surface-variant">
                 <li>A home já lê bookmarks reais do SQLite local.</li>
                 <li>Mídia, autores e links entram no card sem mock visual separado.</li>
                 <li>O próximo passo natural é ligar esse fluxo ao sync incremental com X.</li>
               </ul>
-            </div>
+            </StatCard>
           </div>
         </aside>
       </div>

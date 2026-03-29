@@ -1,6 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useAppStore } from '../store/appStore'
 import { api } from '../services/api'
+import { Button } from './ui/Button'
+import { Input } from './ui/Input'
 
 export function TagSelector({ selectedTagIds = [], onChange }) {
   const { tags } = useAppStore()
@@ -31,20 +33,17 @@ export function TagSelector({ selectedTagIds = [], onChange }) {
   return (
     <div className="space-y-3">
       <div className="flex gap-2">
-        <input
+        <Input
           type="text"
           value={newTagName}
           onChange={(e) => setNewTagName(e.target.value)}
-          onKeyPress={(e) => e.key === 'Enter' && handleCreateTag()}
+          onKeyDown={(e) => e.key === 'Enter' && handleCreateTag()}
           placeholder="Nova tag..."
-          className="flex-1 px-3 py-2 bg-surface-container-lowest border border-outline-variant/20 rounded-lg text-on-surface focus:outline-none focus:ring-1 focus:ring-secondary/40 placeholder:text-on-surface-variant/40 text-sm"
+          wrapperClassName="flex-1"
         />
-        <button
-          onClick={handleCreateTag}
-          className="bg-neon-gradient text-on-primary-fixed px-4 py-2 rounded-lg font-headline font-bold hover:opacity-90 active:scale-95 transition-all text-sm"
-        >
+        <Button onClick={handleCreateTag} size="sm">
           Criar
-        </button>
+        </Button>
       </div>
 
       <div className="space-y-1 max-h-48 overflow-y-auto">

@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Archive, ExternalLink, Images, Link2, Star } from 'lucide-react'
 import { TagBadge } from './TagBadge'
+import { Avatar } from './ui/Avatar'
+import { Badge } from './ui/Badge'
 
 function formatTimestamp(value) {
   if (!value) return 'Unknown date'
@@ -141,17 +143,7 @@ export function BookmarkCard({
 
       <div className="mb-5 flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
-          {bookmark.author_avatar_url ? (
-            <img
-              src={bookmark.author_avatar_url}
-              alt={bookmark.author_name}
-              className="h-10 w-10 rounded-full border border-outline-variant/30 object-cover"
-            />
-          ) : (
-            <div className="flex h-10 w-10 items-center justify-center rounded-full border border-outline-variant/30 bg-surface-container-highest text-on-surface-variant">
-              {bookmark.author_name?.[0] || '?'}
-            </div>
-          )}
+          <Avatar src={bookmark.author_avatar_url} name={bookmark.author_name} />
 
           <div className="min-w-0">
             <p className="truncate text-sm font-bold text-on-surface">{bookmark.author_name}</p>
@@ -213,12 +205,13 @@ export function BookmarkCard({
             <TagBadge key={tag.id} tag={tag} />
           ))}
           {tags.length === 0 && linkItems.slice(0, 2).map((item, index) => (
-            <span
+            <Badge
               key={`${bookmark.id}-link-${index}`}
-              className="rounded-full border border-secondary/20 bg-secondary/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-secondary"
+              tone="secondary"
+              size="sm"
             >
               linked
-            </span>
+            </Badge>
           ))}
         </div>
       )}
@@ -242,14 +235,10 @@ export function BookmarkCard({
             {bookmark.is_archived ? 'Arquivado' : 'Arquivar'}
           </button>
           {coverImage && (
-            <span className="rounded-full bg-secondary/10 p-2 text-secondary">
-              <Images size={14} />
-            </span>
+            <Badge tone="secondary" icon={<Images size={14} />} />
           )}
           {!coverImage && linkItems.length > 0 && (
-            <span className="rounded-full bg-primary/10 p-2 text-primary">
-              <Link2 size={14} />
-            </span>
+            <Badge tone="primary" icon={<Link2 size={14} />} />
           )}
         </div>
 
