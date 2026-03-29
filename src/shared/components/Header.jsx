@@ -1,7 +1,46 @@
+import { useEffect, useRef, useState } from 'react'
 import { Bell, Download, Settings } from 'lucide-react'
 import { SearchBar } from './SearchBar'
+import { useAppStore } from '../store/appStore'
 
 export function Header({ onImport }) {
+  const activeView = useAppStore((state) => state.activeView)
+  const setActiveView = useAppStore((state) => state.setActiveView)
+  const tabs = [
+    { id: 'all', label: 'Tudo' },
+    { id: 'favorites', label: 'Favoritos' },
+    { id: 'archived', label: 'Arquivados' }
+  ]
+  const navRef = useRef(null)
+  const labelRefs = useRef({})
+  const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0, opacity: 0 })
+
+  useEffect(() => {
+    const updateIndicator = () => {
+      const navElement = navRef.current
+      const activeLabel = labelRefs.current[activeView]
+
+      if (!navElement || !activeLabel) {
+        setIndicatorStyle((current) => ({ ...current, opacity: 0 }))
+        return
+      }
+
+      const navRect = navElement.getBoundingClientRect()
+      const labelRect = activeLabel.getBoundingClientRect()
+
+      setIndicatorStyle({
+        left: labelRect.left - navRect.left,
+        width: labelRect.width,
+        opacity: 1
+      })
+    }
+
+    updateIndicator()
+    window.addEventListener('resize', updateIndicator)
+
+    return () => window.removeEventListener('resize', updateIndicator)
+  }, [activeView])
+
   return (
     <header className="sticky top-0 z-40 h-20 bg-[#0d0d1c]/60 backdrop-blur-md flex justify-between items-center px-12 py-4">
       <div className="flex items-center gap-6 flex-1">
@@ -11,16 +50,35 @@ export function Header({ onImport }) {
         </div>
 
         {/* Centro: Nav tabs */}
-        <nav className="hidden lg:flex items-center gap-8 ml-4">
-          <a href="#" className="font-label text-sm font-medium text-[#00e3fd] border-b-2 border-[#00e3fd] pb-1">
-            Tudo
-          </a>
-          <a href="#" className="font-label text-sm font-medium text-on-surface/70 hover:text-primary transition-colors">
-            Não lidos
-          </a>
-          <a href="#" className="font-label text-sm font-medium text-on-surface/70 hover:text-primary transition-colors">
-            Arquivados
-          </a>
+        <nav ref={navRef} className="relative ml-4 hidden items-center gap-8 lg:flex">
+          <span
+            className="pointer-events-none absolute bottom-0 h-[2px] rounded-full bg-[#00e3fd] transition-all duration-300 ease-out"
+            style={{
+              left: `${indicatorStyle.left}px`,
+              width: `${indicatorStyle.width}px`,
+              opacity: indicatorStyle.opacity
+            }}
+          />
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveView(tab.id)}
+              className={
+                activeView === tab.id
+                  ? 'group relative cursor-pointer font-label text-sm font-medium text-[#00e3fd] transition-colors'
+                  : 'group relative cursor-pointer font-label text-sm font-medium text-on-surface/70 transition-colors hover:text-primary'
+              }
+            >
+              <span
+                ref={(element) => {
+                  labelRefs.current[tab.id] = element
+                }}
+                className="relative inline-block pb-1"
+              >
+                {tab.label}
+              </span>
+            </button>
+          ))}
         </nav>
       </div>
 

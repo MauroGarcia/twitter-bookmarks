@@ -5,6 +5,8 @@ const api = {
   getBookmarks: (filters) => ipcRenderer.invoke('bookmarks:get', filters),
   getBookmarksWithTags: (filters) => ipcRenderer.invoke('bookmarks:getWithTags', filters),
   getBookmarkById: (id) => ipcRenderer.invoke('bookmarks:getById', id),
+  setBookmarkFavorite: (id, isFavorite) => ipcRenderer.invoke('bookmarks:setFavorite', { id, isFavorite }),
+  setBookmarkArchived: (id, isArchived) => ipcRenderer.invoke('bookmarks:setArchived', { id, isArchived }),
   deleteBookmark: (id) => ipcRenderer.invoke('bookmarks:delete', id),
 
   // Tags

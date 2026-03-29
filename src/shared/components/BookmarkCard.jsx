@@ -1,13 +1,6 @@
-import { ExternalLink, Heart, Images, Link2, Repeat2 } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Archive, ExternalLink, Images, Link2, Star } from 'lucide-react'
 import { TagBadge } from './TagBadge'
-
-function formatMetric(value) {
-  if (value >= 1000) {
-    return `${(value / 1000).toFixed(1).replace('.0', '')}k`
-  }
-
-  return `${value ?? 0}`
-}
 
 function formatTimestamp(value) {
   if (!value) return 'Unknown date'
@@ -97,15 +90,44 @@ export function TweetText({ text, className = '' }) {
   )
 }
 
-export function BookmarkCard({ bookmark, tags = [], variant = 'default', className = '', onClick }) {
+export function BookmarkCard({
+  bookmark,
+  tags = [],
+  variant = 'default',
+  className = '',
+  onClick,
+  onToggleFavorite,
+  onToggleArchived
+}) {
   const mediaUrls = bookmark.mediaUrls || []
   const linkItems = bookmark.linkItems || []
   const coverImage = mediaUrls[0] || null
+  const [isFavoritingBurstVisible, setIsFavoritingBurstVisible] = useState(false)
+
+  useEffect(() => {
+    if (!isFavoritingBurstVisible) return undefined
+
+    const timeoutId = window.setTimeout(() => {
+      setIsFavoritingBurstVisible(false)
+    }, 180)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [isFavoritingBurstVisible])
+
+  const handleFavoriteClick = (event) => {
+    event.stopPropagation()
+
+    if (!bookmark.is_favorite) {
+      setIsFavoritingBurstVisible(true)
+    }
+
+    onToggleFavorite?.()
+  }
 
   return (
     <article
       onClick={onClick}
-      className={`group relative cursor-pointer overflow-hidden rounded-layout border border-outline-variant/10 p-6 shadow-cyan transition-all duration-300 ${getCardTone(variant)} ${className}`}
+      className={`group relative w-full cursor-pointer overflow-hidden rounded-layout border border-outline-variant/10 p-6 shadow-cyan transition-all duration-300 ${getCardTone(variant)} ${className}`}
     >
       {coverImage && (
         <div className="mb-5 aspect-video overflow-hidden rounded-layout border border-outline-variant/10">
@@ -137,23 +159,30 @@ export function BookmarkCard({ bookmark, tags = [], variant = 'default', classNa
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          {coverImage && (
-            <span className="rounded-full bg-secondary/10 p-2 text-secondary">
-              <Images size={14} />
-            </span>
-          )}
-          {!coverImage && linkItems.length > 0 && (
-            <span className="rounded-full bg-primary/10 p-2 text-primary">
-              <Link2 size={14} />
-            </span>
-          )}
-        </div>
+        <button
+          type="button"
+          onClick={handleFavoriteClick}
+          className={`relative flex h-10 w-10 cursor-pointer items-center justify-center transition-all duration-150 ${
+            bookmark.is_favorite
+              ? 'text-[#ffb347] drop-shadow-[0_0_12px_rgba(255,179,71,0.35)]'
+              : 'text-on-surface-variant hover:text-[#ffb347]'
+          }`}
+          title={bookmark.is_favorite ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
+        >
+          <Star
+            size={20}
+            className={`relative z-[1] transition-all duration-150 ${
+              bookmark.is_favorite ? 'fill-current scale-110' : ''
+            } ${isFavoritingBurstVisible ? 'scale-[1.38]' : 'scale-100'} ${
+              isFavoritingBurstVisible ? 'ease-out' : ''
+            }`}
+          />
+        </button>
       </div>
 
       <TweetText
         text={bookmark.full_text}
-        className={`font-body leading-relaxed text-on-surface ${variant === 'feature' ? 'mb-4 text-base' : 'mb-4 text-sm'} line-clamp-5`}
+        className={`font-body leading-relaxed text-on-surface ${variant === 'feature' ? 'mb-4 text-base' : 'mb-4 text-sm'}`}
       />
 
       {bookmark.quoted_tweet && (
@@ -173,7 +202,7 @@ export function BookmarkCard({ bookmark, tags = [], variant = 'default', classNa
           </div>
           <TweetText
             text={bookmark.quoted_tweet.full_text}
-            className="line-clamp-3 text-xs leading-relaxed text-on-surface-variant"
+            className="text-xs leading-relaxed text-on-surface-variant"
           />
         </div>
       )}
@@ -195,15 +224,33 @@ export function BookmarkCard({ bookmark, tags = [], variant = 'default', classNa
       )}
 
       <div className="flex items-center justify-between border-t border-outline-variant/10 pt-4 text-[11px] text-on-surface-variant">
-        <div className="flex items-center gap-4">
-          <span className="flex items-center gap-1.5">
-            <Heart size={14} className="text-error" />
-            {formatMetric(bookmark.like_count)}
-          </span>
-          <span className="flex items-center gap-1.5">
-            <Repeat2 size={14} className="text-secondary" />
-            {formatMetric(bookmark.retweet_count)}
-          </span>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation()
+              onToggleArchived?.()
+            }}
+            className={`cursor-pointer flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
+              bookmark.is_archived
+                ? 'border-secondary/30 bg-secondary/10 text-secondary'
+                : 'border-outline-variant/10 bg-surface-container-high text-on-surface-variant hover:text-secondary'
+            }`}
+            title={bookmark.is_archived ? 'Desarquivar' : 'Arquivar'}
+          >
+            <Archive size={14} />
+            {bookmark.is_archived ? 'Arquivado' : 'Arquivar'}
+          </button>
+          {coverImage && (
+            <span className="rounded-full bg-secondary/10 p-2 text-secondary">
+              <Images size={14} />
+            </span>
+          )}
+          {!coverImage && linkItems.length > 0 && (
+            <span className="rounded-full bg-primary/10 p-2 text-primary">
+              <Link2 size={14} />
+            </span>
+          )}
         </div>
 
         <a

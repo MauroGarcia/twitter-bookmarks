@@ -15,7 +15,7 @@ export function Sidebar() {
             The Curator
           </h1>
           <p className="font-headline text-[10px] uppercase tracking-widest text-on-surface/40">
-            Artifact Collector
+            Bookmark Collector
           </p>
         </div>
       </div>

@@ -22,6 +22,8 @@ export const api = {
   getBookmarks: (...args) => getApi().getBookmarks(...args),
   getBookmarksWithTags: (...args) => getApi().getBookmarksWithTags(...args),
   getBookmarkById: (...args) => getApi().getBookmarkById(...args),
+  setBookmarkFavorite: (...args) => getApi().setBookmarkFavorite(...args),
+  setBookmarkArchived: (...args) => getApi().setBookmarkArchived(...args),
   deleteBookmark: (...args) => getApi().deleteBookmark(...args),
 
   getAllTags: (...args) => getApi().getAllTags(...args),

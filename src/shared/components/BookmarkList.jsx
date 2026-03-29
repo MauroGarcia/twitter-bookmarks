@@ -17,7 +17,7 @@ function buildHighlights(bookmarks) {
 
   return [
     {
-      label: `${bookmarks.length} artifacts`,
+      label: `${bookmarks.length} bookmarks`,
       tone: 'primary'
     },
     {
@@ -37,11 +37,37 @@ function buildHighlights(bookmarks) {
 
 export function BookmarkList({ onSelectBookmark }) {
   const bookmarks = useAppStore((state) => state.bookmarks)
+  const activeView = useAppStore((state) => state.activeView)
   const isLoading = useAppStore((state) => state.isLoading)
   const isLoadingMore = useAppStore((state) => state.isLoadingMore)
   const hasMoreBookmarks = useAppStore((state) => state.hasMoreBookmarks)
+  const transitioningBookmarkIds = useAppStore((state) => state.transitioningBookmarkIds)
   const loadMoreBookmarks = useAppStore((state) => state.loadMoreBookmarks)
+  const toggleBookmarkFavorite = useAppStore((state) => state.toggleBookmarkFavorite)
+  const toggleBookmarkArchived = useAppStore((state) => state.toggleBookmarkArchived)
   const sentinelRef = useRef(null)
+
+  const copyByView = {
+    all: {
+      title: 'Recent Bookmarks',
+      description: 'Curadoria viva dos bookmarks ativos, com favoritos rápidos e arquivamento direto do mosaico.',
+      emptyTitle: 'Nenhum bookmark ativo',
+      emptyDescription: 'Arquive menos ou importe novos bookmarks para repovoar a biblioteca principal.'
+    },
+    favorites: {
+      title: 'Favorite Bookmarks',
+      description: 'Colecao priorizada dos bookmarks que merecem voltar para a mesa de trabalho.',
+      emptyTitle: 'Nenhum favorito ainda',
+      emptyDescription: 'Marque alguns cards com estrela para formar a sua shortlist.'
+    },
+    archived: {
+      title: 'Archived Bookmarks',
+      description: 'Itens guardados fora do fluxo principal, mas ainda acessiveis para consulta ou resgate.',
+      emptyTitle: 'Nenhum item arquivado',
+      emptyDescription: 'Arquive cards da home para limpar o fluxo e manter historico.'
+    }
+  }
+  const currentCopy = copyByView[activeView] || copyByView.all
 
   useEffect(() => {
     const sentinel = sentinelRef.current
@@ -121,9 +147,9 @@ export function BookmarkList({ onSelectBookmark }) {
   if (bookmarks.length === 0) {
     return (
       <section className="rounded-layout border border-outline-variant/10 bg-surface-container p-10 text-center shadow-cyan">
-        <p className="font-headline text-3xl font-bold text-on-surface">Nenhum artifact encontrado</p>
+        <p className="font-headline text-3xl font-bold text-on-surface">{currentCopy.emptyTitle}</p>
         <p className="mx-auto mt-3 max-w-xl text-sm text-on-surface-variant">
-          Importe um arquivo de bookmarks ou conecte sua conta do X para começar a preencher esta biblioteca.
+          {currentCopy.emptyDescription}
         </p>
       </section>
     )
@@ -137,10 +163,10 @@ export function BookmarkList({ onSelectBookmark }) {
             Dashboard Home
           </p>
           <h2 className="mt-2 font-headline text-4xl font-extrabold tracking-tight text-on-surface">
-            Recent Artifacts
+            {currentCopy.title}
           </h2>
           <p className="mt-3 max-w-2xl text-sm text-on-surface-variant">
-            Curadoria viva dos seus bookmarks mais recentes, com mídia, links e autores reais carregados do SQLite local.
+            {currentCopy.description}
           </p>
         </div>
 
@@ -165,18 +191,27 @@ export function BookmarkList({ onSelectBookmark }) {
       </div>
 
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_300px]">
-        <div className="grid grid-cols-1 gap-8 md:grid-cols-2 xl:grid-cols-3">
+        <div>
+          <div className="columns-1 gap-8 md:columns-2 xl:columns-3 [column-gap:2rem]">
           {bookmarks.map((bookmark, index) => (
-            <BookmarkCard
-              key={bookmark.id}
-              bookmark={bookmark}
-              tags={bookmark.tags || []}
-              variant={index === 1 ? 'feature' : index % 5 === 0 ? 'accent' : 'default'}
-              className={index === 1 ? 'md:row-span-2' : ''}
-              onClick={() => onSelectBookmark(bookmark)}
-            />
+              <div
+                key={bookmark.id}
+                className={`mb-8 break-inside-avoid transition-all duration-300 ${
+                  transitioningBookmarkIds.includes(bookmark.id) ? 'pointer-events-none scale-95 opacity-0 blur-[2px]' : ''
+                }`}
+              >
+                <BookmarkCard
+                  bookmark={bookmark}
+                  tags={bookmark.tags || []}
+                  variant={index % 4 === 1 ? 'feature' : index % 5 === 0 ? 'accent' : 'default'}
+                  onToggleFavorite={() => toggleBookmarkFavorite(bookmark.id)}
+                  onToggleArchived={() => toggleBookmarkArchived(bookmark.id)}
+                  onClick={() => onSelectBookmark(bookmark)}
+                />
+              </div>
           ))}
-          <div ref={sentinelRef} className="col-span-full">
+          </div>
+          <div ref={sentinelRef}>
             {(hasMoreBookmarks || isLoadingMore) && (
               <div className="flex justify-center py-6">
                 <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />

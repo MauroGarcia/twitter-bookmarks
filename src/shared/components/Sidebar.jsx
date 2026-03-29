@@ -2,7 +2,17 @@ import { MdAutoAwesomeMotion } from 'react-icons/md'
 import { useAppStore } from '../store/appStore'
 
 export function Sidebar() {
-  const { tags, selectedTag, setSelectedTag } = useAppStore()
+  const tags = useAppStore((state) => state.tags)
+  const selectedTag = useAppStore((state) => state.selectedTag)
+  const setSelectedTag = useAppStore((state) => state.setSelectedTag)
+  const activeView = useAppStore((state) => state.activeView)
+  const setActiveView = useAppStore((state) => state.setActiveView)
+  const stats = useAppStore((state) => state.stats)
+  const sections = [
+    { id: 'all', label: 'Library', count: Math.max(0, (stats.bookmarksCount || 0) - (stats.archivedCount || 0)) },
+    { id: 'favorites', label: 'Favoritos', count: stats.favoritesCount || 0 },
+    { id: 'archived', label: 'Arquivados', count: stats.archivedCount || 0 }
+  ]
 
   return (
     <aside className="sticky top-0 z-50 flex h-screen w-72 flex-col rounded-r-layout bg-[#121222]/80 px-6 py-8 shadow-cyan backdrop-blur-xl">
@@ -16,23 +26,32 @@ export function Sidebar() {
             The Curator
           </h1>
           <p className="font-headline text-[10px] uppercase tracking-widest text-on-surface/40">
-            Artifact Collector
+            Bookmark Collector
           </p>
         </div>
       </div>
 
       {/* Nav */}
       <nav className="flex-1 space-y-2 mb-6">
-        <button
-          onClick={() => setSelectedTag(null)}
-          className={selectedTag === null
-            ? 'flex w-full scale-105 items-center gap-4 rounded-layout bg-[#1e1e32] px-4 py-3 font-headline font-bold text-[#00e3fd] transition-all duration-300 hover:bg-[#24243a]'
-            : 'flex w-full items-center gap-4 rounded-layout px-4 py-3 font-headline text-[#e6e3f9]/60 transition-colors duration-300 hover:bg-[#1e1e32] hover:text-[#00e3fd]'
-          }
-        >
-          <span className="material-symbols-outlined">auto_awesome_motion</span>
-          <span>Library</span>
-        </button>
+        {sections.map((section) => (
+          <button
+            key={section.id}
+            onClick={() => {
+              setActiveView(section.id)
+              setSelectedTag(null)
+            }}
+            className={activeView === section.id && selectedTag === null
+              ? 'flex w-full scale-105 items-center gap-4 rounded-layout bg-[#1e1e32] px-4 py-3 font-headline font-bold text-[#00e3fd] transition-all duration-300 hover:bg-[#24243a]'
+              : 'flex w-full items-center gap-4 rounded-layout px-4 py-3 font-headline text-[#e6e3f9]/60 transition-colors duration-300 hover:bg-[#1e1e32] hover:text-[#00e3fd]'
+            }
+          >
+            <span className="material-symbols-outlined">auto_awesome_motion</span>
+            <span className="flex-1 text-left">{section.label}</span>
+            <span className="rounded-full bg-surface-container-highest px-2 py-0.5 text-[10px] text-on-surface-variant">
+              {section.count}
+            </span>
+          </button>
+        ))}
 
         {tags.length > 0 && (
           <>

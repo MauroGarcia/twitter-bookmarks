@@ -40,6 +40,101 @@ function buildFtsMatchQuery(value) {
     .join(' AND ')
 }
 
+function normalizePagination(filters = {}) {
+  const limit = Number.isFinite(Number(filters.limit)) ? Math.max(1, Number(filters.limit)) : 20
+  const offset = Number.isFinite(Number(filters.offset)) ? Math.max(0, Number(filters.offset)) : 0
+
+  return { limit, offset }
+}
+
+function buildBookmarksQueryParts(filters = {}) {
+  const { tag, search, author, view = 'all' } = filters
+  const params = []
+  const joins = []
+  const conditions = []
+
+  if (tag) {
+    joins.push('INNER JOIN bookmark_tags bt ON b.id = bt.bookmark_id')
+    joins.push('INNER JOIN tags t ON bt.tag_id = t.id')
+    conditions.push('t.name = ?')
+    params.push(tag)
+  }
+
+  if (author) {
+    const escapedAuthor = escapeLike(author)
+    conditions.push(`(b.author_handle LIKE ? ESCAPE '\\' OR b.author_name LIKE ? ESCAPE '\\')`)
+    params.push(`%${escapedAuthor}%`, `%${escapedAuthor}%`)
+  }
+
+  if (search) {
+    const matchQuery = buildFtsMatchQuery(search)
+
+    if (matchQuery) {
+      joins.push('INNER JOIN bookmarks_fts ON bookmarks_fts.rowid = b.rowid')
+      conditions.push('bookmarks_fts MATCH ?')
+      params.push(matchQuery)
+    }
+  }
+
+  if (view === 'favorites') {
+    conditions.push('b.is_favorite = 1')
+    conditions.push('b.is_archived = 0')
+  } else if (view === 'archived') {
+    conditions.push('b.is_archived = 1')
+  } else {
+    conditions.push('b.is_archived = 0')
+  }
+
+  return { joins, conditions, params }
+}
+
+function buildBookmarksSelectQuery(filters = {}) {
+  const { joins, conditions, params } = buildBookmarksQueryParts(filters)
+  const { limit, offset } = normalizePagination(filters)
+
+  let query = 'SELECT b.* FROM bookmarks b'
+
+  if (joins.length > 0) {
+    query += ` ${joins.join(' ')}`
+  }
+
+  if (conditions.length > 0) {
+    query += ` WHERE ${conditions.join(' AND ')}`
+  }
+
+  query += ' ORDER BY b.created_at DESC LIMIT ? OFFSET ?'
+
+  return {
+    query,
+    params: [...params, limit, offset],
+    limit,
+    offset
+  }
+}
+
+function countBookmarks(filters = {}) {
+  const { joins, conditions, params } = buildBookmarksQueryParts(filters)
+  let query = 'SELECT COUNT(DISTINCT b.id) as count FROM bookmarks b'
+
+  if (joins.length > 0) {
+    query += ` ${joins.join(' ')}`
+  }
+
+  if (conditions.length > 0) {
+    query += ` WHERE ${conditions.join(' AND ')}`
+  }
+
+  return db.prepare(query).get(...params).count
+}
+
+function ensureBookmarkColumn(columnName, definition) {
+  const columns = db.prepare('PRAGMA table_info(bookmarks)').all()
+
+  if (!columns.some((column) => column.name === columnName)) {
+    db.exec(`ALTER TABLE bookmarks ADD COLUMN ${columnName} ${definition}`)
+  }
+}
+
 // ============ SCHEMA ============
 export function initDb() {
   db.exec(`
@@ -54,6 +149,8 @@ export function initDb() {
       imported_at TEXT NOT NULL,
       like_count INTEGER DEFAULT 0,
       retweet_count INTEGER DEFAULT 0,
+      is_favorite INTEGER NOT NULL DEFAULT 0,
+      is_archived INTEGER NOT NULL DEFAULT 0,
       has_media INTEGER DEFAULT 0,
       media_urls TEXT,
       urls TEXT,
@@ -108,53 +205,16 @@ export function initDb() {
     CREATE INDEX IF NOT EXISTS idx_bookmark_tags_tag_id_bookmark_id ON bookmark_tags(tag_id, bookmark_id);
     CREATE INDEX IF NOT EXISTS idx_tags_name ON tags(name);
   `)
+
+  ensureBookmarkColumn('is_favorite', 'INTEGER NOT NULL DEFAULT 0')
+  ensureBookmarkColumn('is_archived', 'INTEGER NOT NULL DEFAULT 0')
+  db.exec('CREATE INDEX IF NOT EXISTS idx_bookmarks_status_created_at ON bookmarks(is_archived, is_favorite, created_at DESC)')
 }
 
 // ============ BOOKMARKS ============
 export function getBookmarks(filters = {}) {
-  const { tag, search, author, limit = 20, offset = 0 } = filters
-  const params = []
-  const joins = []
-  const conditions = []
-
-  if (tag) {
-    joins.push('INNER JOIN bookmark_tags bt ON b.id = bt.bookmark_id')
-    joins.push('INNER JOIN tags t ON bt.tag_id = t.id')
-    conditions.push('t.name = ?')
-    params.push(tag)
-  }
-
-  if (author) {
-    const escapedAuthor = escapeLike(author)
-    conditions.push(`(b.author_handle LIKE ? ESCAPE '\\' OR b.author_name LIKE ? ESCAPE '\\')`)
-    params.push(`%${escapedAuthor}%`, `%${escapedAuthor}%`)
-  }
-
-  if (search) {
-    const matchQuery = buildFtsMatchQuery(search)
-
-    if (matchQuery) {
-      joins.push('INNER JOIN bookmarks_fts ON bookmarks_fts.rowid = b.rowid')
-      conditions.push('bookmarks_fts MATCH ?')
-      params.push(matchQuery)
-    }
-  }
-
-  let query = `SELECT b.* FROM bookmarks b`
-
-  if (joins.length > 0) {
-    query += ` ${joins.join(' ')}`
-  }
-
-  if (conditions.length > 0) {
-    query += ` WHERE ${conditions.join(' AND ')}`
-  }
-
-  query += ` ORDER BY b.created_at DESC LIMIT ? OFFSET ?`
-  params.push(limit, offset)
-
-  const stmt = db.prepare(query)
-  return stmt.all(...params)
+  const { query, params } = buildBookmarksSelectQuery(filters)
+  return db.prepare(query).all(...params)
 }
 
 export function getBookmarkById(id) {
@@ -167,8 +227,8 @@ export function createBookmark(bookmark) {
     INSERT INTO bookmarks (
       id, tweet_url, full_text, author_name, author_handle,
       author_avatar_url, created_at, imported_at, like_count,
-      retweet_count, has_media, media_urls, urls, raw_json
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      retweet_count, is_favorite, is_archived, has_media, media_urls, urls, raw_json
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `)
 
   return stmt.run(
@@ -182,11 +242,21 @@ export function createBookmark(bookmark) {
     bookmark.imported_at,
     bookmark.like_count || 0,
     bookmark.retweet_count || 0,
+    bookmark.is_favorite ? 1 : 0,
+    bookmark.is_archived ? 1 : 0,
     bookmark.has_media ? 1 : 0,
     bookmark.media_urls ? JSON.stringify(bookmark.media_urls) : null,
     bookmark.urls ? JSON.stringify(bookmark.urls) : null,
     bookmark.raw_json ? JSON.stringify(bookmark.raw_json) : null
   )
+}
+
+export function setBookmarkFavorite(id, isFavorite) {
+  return db.prepare('UPDATE bookmarks SET is_favorite = ? WHERE id = ?').run(isFavorite ? 1 : 0, id)
+}
+
+export function setBookmarkArchived(id, isArchived) {
+  return db.prepare('UPDATE bookmarks SET is_archived = ? WHERE id = ?').run(isArchived ? 1 : 0, id)
 }
 
 export function deleteBookmark(id) {
@@ -290,19 +360,22 @@ export function deleteNote(bookmarkId) {
 
 // ============ BOOKMARKS WITH TAGS (Otimizado) ============
 export function getBookmarksWithTags(filters = {}) {
-  const { tag, search, author, limit = 20, offset = 0 } = filters
-
-  // Primeira query: obter bookmarks
+  const { limit, offset } = normalizePagination(filters)
   const bookmarks = getBookmarks(filters)
+  const total = countBookmarks(filters)
 
-  // Segunda query: obter todas as tags de uma vez (muito mais eficiente)
   const bookmarkIds = bookmarks.map(b => b.id)
 
   if (bookmarkIds.length === 0) {
-    return bookmarks.map(b => ({ ...b, tags: [] }))
+    return {
+      items: [],
+      total,
+      offset,
+      limit,
+      hasMore: false
+    }
   }
 
-  // Usar IN clause para pegar todas as tags em uma única query
   const placeholders = bookmarkIds.map(() => '?').join(',')
   const stmt = db.prepare(`
     SELECT bt.bookmark_id, t.id, t.name, t.color, t.created_at
@@ -313,7 +386,6 @@ export function getBookmarksWithTags(filters = {}) {
 
   const allTags = stmt.all(...bookmarkIds)
 
-  // Agrupar tags por bookmark_id
   const tagsMap = {}
   for (const record of allTags) {
     if (!tagsMap[record.bookmark_id]) {
@@ -327,11 +399,18 @@ export function getBookmarksWithTags(filters = {}) {
     })
   }
 
-  // Retornar bookmarks com tags associadas
-  return bookmarks.map(b => ({
+  const items = bookmarks.map(b => ({
     ...b,
     tags: tagsMap[b.id] || []
   }))
+
+  return {
+    items,
+    total,
+    offset,
+    limit,
+    hasMore: offset + items.length < total
+  }
 }
 
 // ============ STATS ============
@@ -339,8 +418,10 @@ export function getStats() {
   const bookmarksCount = db.prepare('SELECT COUNT(*) as count FROM bookmarks').get().count
   const tagsCount = db.prepare('SELECT COUNT(*) as count FROM tags').get().count
   const notesCount = db.prepare('SELECT COUNT(*) as count FROM notes').get().count
+  const favoritesCount = db.prepare('SELECT COUNT(*) as count FROM bookmarks WHERE is_favorite = 1 AND is_archived = 0').get().count
+  const archivedCount = db.prepare('SELECT COUNT(*) as count FROM bookmarks WHERE is_archived = 1').get().count
 
-  return { bookmarksCount, tagsCount, notesCount }
+  return { bookmarksCount, tagsCount, notesCount, favoritesCount, archivedCount }
 }
 
 export default db

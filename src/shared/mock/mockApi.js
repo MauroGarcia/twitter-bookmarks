@@ -1,5 +1,7 @@
 import { normalizeBookmarks } from '../lib/bookmark-utils'
 
+const MOCK_BOOKMARK_STATE_STORAGE_KEY = 'twitter-bookmarks.mock-state.v1'
+
 const rawMockBookmarks = [
   {
     tweet: {
@@ -448,7 +450,7 @@ const rawMockBookmarks = [
   }
 ]
 
-function transformBookmark(item) {
+function transformBookmark(item, index) {
   const tweet = item.tweet
 
   return {
@@ -467,17 +469,88 @@ function transformBookmark(item) {
     urls: tweet.entities?.urls?.map((url) => ({ url: url.url, expanded_url: url.expanded_url })) || null,
     quoted_tweet: tweet.quoted_tweet || null,
     raw_json: tweet,
+    is_favorite: index === 0 || index === 3 || index === 8,
+    is_archived: index === 5 || index === 14,
     tags: []
   }
 }
 
-const mockBookmarks = normalizeBookmarks(rawMockBookmarks.map(transformBookmark))
+function loadStoredMockState() {
+  if (typeof window === 'undefined' || !window.localStorage) {
+    return {}
+  }
+
+  try {
+    const rawValue = window.localStorage.getItem(MOCK_BOOKMARK_STATE_STORAGE_KEY)
+    const parsedValue = rawValue ? JSON.parse(rawValue) : {}
+
+    return parsedValue && typeof parsedValue === 'object' ? parsedValue : {}
+  } catch {
+    return {}
+  }
+}
+
+function persistMockState(bookmarks) {
+  if (typeof window === 'undefined' || !window.localStorage) {
+    return
+  }
+
+  const stateToPersist = Object.fromEntries(
+    bookmarks.map((bookmark) => [
+      bookmark.id,
+      {
+        is_favorite: Boolean(bookmark.is_favorite),
+        is_archived: Boolean(bookmark.is_archived)
+      }
+    ])
+  )
+
+  window.localStorage.setItem(MOCK_BOOKMARK_STATE_STORAGE_KEY, JSON.stringify(stateToPersist))
+}
+
+const storedMockState = loadStoredMockState()
+const mockBookmarks = normalizeBookmarks(
+  rawMockBookmarks.map((item, index) => {
+    const bookmark = transformBookmark(item, index)
+    const storedState = storedMockState[bookmark.id]
+
+    return storedState
+      ? {
+          ...bookmark,
+          is_favorite: Boolean(storedState.is_favorite),
+          is_archived: Boolean(storedState.is_archived)
+        }
+      : bookmark
+  })
+)
+
+function updateMockBookmark(id, updater) {
+  const bookmark = mockBookmarks.find((item) => item.id === id)
+
+  if (!bookmark) {
+    return null
+  }
+
+  const updates = updater(bookmark)
+  Object.assign(bookmark, updates)
+  persistMockState(mockBookmarks)
+  return bookmark
+}
 
 function filterBookmarks(filters = {}) {
   const tagFilter = filters.tag ? `${filters.tag}`.toLowerCase() : ''
   const searchFilter = filters.search ? `${filters.search}`.toLowerCase() : ''
+  const view = filters.view || 'all'
 
   let items = [...mockBookmarks]
+
+  if (view === 'favorites') {
+    items = items.filter((bookmark) => bookmark.is_favorite && !bookmark.is_archived)
+  } else if (view === 'archived') {
+    items = items.filter((bookmark) => bookmark.is_archived)
+  } else {
+    items = items.filter((bookmark) => !bookmark.is_archived)
+  }
 
   if (tagFilter) {
     items = items.filter((bookmark) =>
@@ -529,6 +602,16 @@ export const mockApi = {
     return mockBookmarks.find((bookmark) => bookmark.id === id) || null
   },
 
+  async setBookmarkFavorite(id, isFavorite) {
+    const bookmark = updateMockBookmark(id, () => ({ is_favorite: Boolean(isFavorite) }))
+    return bookmark || null
+  },
+
+  async setBookmarkArchived(id, isArchived) {
+    const bookmark = updateMockBookmark(id, () => ({ is_archived: Boolean(isArchived) }))
+    return bookmark || null
+  },
+
   async deleteBookmark(id) {
     return { deleted: id }
   },
@@ -576,6 +659,8 @@ export const mockApi = {
   async getStats() {
     return {
       bookmarksCount: mockBookmarks.length,
+      favoritesCount: mockBookmarks.filter((bookmark) => bookmark.is_favorite && !bookmark.is_archived).length,
+      archivedCount: mockBookmarks.filter((bookmark) => bookmark.is_archived).length,
       tagsCount: 0,
       notesCount: 0
     }

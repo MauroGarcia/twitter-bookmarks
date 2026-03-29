@@ -19,6 +19,8 @@ export function normalizeBookmark(bookmark) {
     ...bookmark,
     mediaUrls,
     linkItems,
+    is_favorite: Boolean(bookmark.is_favorite),
+    is_archived: Boolean(bookmark.is_archived),
   }
 }
 

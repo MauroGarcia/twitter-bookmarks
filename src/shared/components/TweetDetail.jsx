@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { X, Heart, Repeat2, ExternalLink, Save, Trash2 } from 'lucide-react'
+import { X, Archive, ExternalLink, Save, Star, Trash2 } from 'lucide-react'
 import { TagBadge } from './TagBadge'
 import { TagSelector } from './TagSelector'
 import { ConfirmDialog } from './ConfirmDialog'
@@ -13,7 +13,20 @@ export function TweetDetail({ bookmark, tags = [], onClose }) {
   const [isEditingNote, setIsEditingNote] = useState(false)
   const [isEditingTags, setIsEditingTags] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
-  const { loadBookmarks } = useAppStore()
+  const [isFavoritingBurstVisible, setIsFavoritingBurstVisible] = useState(false)
+  const loadBookmarks = useAppStore((state) => state.loadBookmarks)
+  const toggleBookmarkFavorite = useAppStore((state) => state.toggleBookmarkFavorite)
+  const toggleBookmarkArchived = useAppStore((state) => state.toggleBookmarkArchived)
+
+  useEffect(() => {
+    if (!isFavoritingBurstVisible) return undefined
+
+    const timeoutId = window.setTimeout(() => {
+      setIsFavoritingBurstVisible(false)
+    }, 180)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [isFavoritingBurstVisible])
 
   useEffect(() => {
     if (bookmark) {
@@ -71,7 +84,7 @@ export function TweetDetail({ bookmark, tags = [], onClose }) {
           <h2 className="font-headline text-lg font-bold text-on-surface">Detalhes do Bookmark</h2>
           <button
             onClick={onClose}
-            className="text-on-surface-variant hover:text-on-surface transition-colors"
+            className="cursor-pointer text-on-surface-variant hover:text-on-surface transition-colors"
           >
             <X size={20} />
           </button>
@@ -92,6 +105,27 @@ export function TweetDetail({ bookmark, tags = [], onClose }) {
                 <h3 className="font-headline font-bold text-on-surface">{bookmark.author_name}</h3>
                 <p className="text-sm text-on-surface-variant">@{bookmark.author_handle}</p>
               </div>
+              <button
+                onClick={() => {
+                  if (!bookmark.is_favorite) {
+                    setIsFavoritingBurstVisible(true)
+                  }
+                  toggleBookmarkFavorite(bookmark.id)
+                }}
+                className={`cursor-pointer relative flex h-10 w-10 items-center justify-center transition-all duration-150 ${
+                  bookmark.is_favorite
+                    ? 'text-[#ffb347] drop-shadow-[0_0_12px_rgba(255,179,71,0.35)]'
+                    : 'text-on-surface-variant hover:text-[#ffb347]'
+                }`}
+                title={bookmark.is_favorite ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
+              >
+                <Star
+                  size={20}
+                  className={`transition-all duration-150 ${
+                    bookmark.is_favorite ? 'fill-current scale-110' : ''
+                  } ${isFavoritingBurstVisible ? 'scale-[1.38]' : 'scale-100'}`}
+                />
+              </button>
             </div>
             <TweetText text={bookmark.full_text} className="font-body text-on-surface/80 mb-3" />
 
@@ -128,14 +162,17 @@ export function TweetDetail({ bookmark, tags = [], onClose }) {
               </div>
             )}
 
-            <div className="flex items-center gap-4 text-sm text-on-surface-variant">
-              <button className="flex items-center gap-1 hover:text-error transition-colors">
-                <Heart size={16} />
-                {bookmark.like_count}
-              </button>
-              <button className="flex items-center gap-1 hover:text-secondary transition-colors">
-                <Repeat2 size={16} />
-                {bookmark.retweet_count}
+            <div className="flex items-center gap-3 text-sm text-on-surface-variant">
+              <button
+                onClick={() => toggleBookmarkArchived(bookmark.id)}
+                className={`cursor-pointer flex items-center gap-2 rounded-full border px-3 py-1.5 transition-colors ${
+                  bookmark.is_archived
+                    ? 'border-secondary/30 bg-secondary/10 text-secondary'
+                    : 'border-outline-variant/20 hover:text-secondary'
+                }`}
+              >
+                <Archive size={16} />
+                {bookmark.is_archived ? 'Arquivado' : 'Arquivar'}
               </button>
               <a
                 href={bookmark.tweet_url}

@@ -11,6 +11,7 @@ export default function App() {
     selectedBookmark,
     setSelectedBookmark,
     setImportDialog,
+    activeView,
     selectedTag,
     searchQuery,
     loadBookmarks
@@ -30,7 +31,7 @@ export default function App() {
     }
 
     loadBookmarks()
-  }, [selectedTag, searchQuery])
+  }, [activeView, selectedTag, searchQuery])
 
   const handleSelectBookmark = (bookmark) => {
     setSelectedBookmark(bookmark)

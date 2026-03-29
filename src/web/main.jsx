@@ -30,18 +30,65 @@ function withMockFallback(primary, fallback) {
   }
 }
 
+function withMockFallbackOnEmpty(primary, fallback, isEmptyResult) {
+  return async (...args) => {
+    try {
+      const result = await primary(...args)
+
+      if (isEmptyResult(result, ...args)) {
+        return fallback(...args)
+      }
+
+      return result
+    } catch (error) {
+      console.warn('[web] Falling back to local mock API:', error)
+      return fallback(...args)
+    }
+  }
+}
+
 const httpApi = {
-  getBookmarks: withMockFallback(
+  getBookmarks: withMockFallbackOnEmpty(
     (filters) => fetchJson('/api/bookmarks?' + new URLSearchParams(filters)),
-    mockApi.getBookmarks
+    mockApi.getBookmarks,
+    (result, filters = {}) => {
+      const hasNoFilters = !filters.tag && !filters.search && (!filters.view || filters.view === 'all')
+
+      if (!hasNoFilters) {
+        return false
+      }
+
+      return Array.isArray(result)
+        ? result.length === 0
+        : Array.isArray(result?.items) && Number(result?.total || 0) === 0
+    }
   ),
-  getBookmarksWithTags: withMockFallback(
+  getBookmarksWithTags: withMockFallbackOnEmpty(
     (filters) => fetchJson('/api/bookmarks/with-tags?' + new URLSearchParams(filters)),
-    mockApi.getBookmarksWithTags
+    mockApi.getBookmarksWithTags,
+    (result, filters = {}) => {
+      const hasNoFilters = !filters.tag && !filters.search && (!filters.view || filters.view === 'all')
+
+      if (!hasNoFilters) {
+        return false
+      }
+
+      return Array.isArray(result)
+        ? result.length === 0
+        : Array.isArray(result?.items) && Number(result?.total || 0) === 0
+    }
   ),
   getBookmarkById: withMockFallback(
     (id) => fetchJson(`/api/bookmarks/${id}`),
     mockApi.getBookmarkById
+  ),
+  setBookmarkFavorite: withMockFallback(
+    (id, isFavorite) => fetchJson(`/api/bookmarks/${id}/favorite`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ isFavorite }) }),
+    mockApi.setBookmarkFavorite
+  ),
+  setBookmarkArchived: withMockFallback(
+    (id, isArchived) => fetchJson(`/api/bookmarks/${id}/archived`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ isArchived }) }),
+    mockApi.setBookmarkArchived
   ),
   deleteBookmark: withMockFallback(
     (id) => fetchJson(`/api/bookmarks/${id}`, { method: 'DELETE' }),
@@ -88,9 +135,10 @@ const httpApi = {
   ),
 
   importBookmarks: mockApi.importBookmarks,
-  getStats: withMockFallback(
+  getStats: withMockFallbackOnEmpty(
     () => fetchJson('/api/stats'),
-    mockApi.getStats
+    mockApi.getStats,
+    (result) => Number(result?.bookmarksCount || 0) === 0
   ),
 }
 

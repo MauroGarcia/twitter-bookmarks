@@ -29,6 +29,16 @@ export function registerIpcHandlers() {
     return db.getBookmarkById(id)
   }))
 
+  ipcMain.handle('bookmarks:setFavorite', createErrorHandler('bookmarks:setFavorite', (event, { id, isFavorite }) => {
+    if (!id) throw new Error('ID do bookmark não fornecido')
+    return db.setBookmarkFavorite(id, Boolean(isFavorite))
+  }))
+
+  ipcMain.handle('bookmarks:setArchived', createErrorHandler('bookmarks:setArchived', (event, { id, isArchived }) => {
+    if (!id) throw new Error('ID do bookmark não fornecido')
+    return db.setBookmarkArchived(id, Boolean(isArchived))
+  }))
+
   ipcMain.handle('bookmarks:delete', createErrorHandler('bookmarks:delete', (event, id) => {
     if (!id) throw new Error('ID do bookmark não fornecido')
     return db.deleteBookmark(id)

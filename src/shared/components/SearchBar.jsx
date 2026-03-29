@@ -28,7 +28,7 @@ export function SearchBar() {
       </span>
       <input
         type="text"
-        placeholder="Pesquisar artefatos, autores ou tags..."
+        placeholder="Pesquisar bookmarks, autores ou tags..."
         value={inputValue}
         onChange={(e) => setInputValue(e.target.value)}
         aria-busy={isLoading}

@@ -22,7 +22,7 @@ function buildHighlights(bookmarks) {
   }).length
 
   return [
-    { label: `${bookmarks.length} artifacts`, tone: 'primary' },
+    { label: `${bookmarks.length} bookmarks`, tone: 'primary' },
     { label: `${uniqueAuthors} sources`, tone: 'secondary' },
     { label: `${mediaCount} with media`, tone: 'tertiary' },
     { label: `${linkCount} linked reads`, tone: 'default' }
@@ -78,7 +78,7 @@ export function BookmarkList({ onSelectBookmark }) {
   if (bookmarks.length === 0) {
     return (
       <section className="rounded-layout border border-outline-variant/10 bg-surface-container p-10 text-center shadow-cyan">
-        <p className="font-headline text-3xl font-bold text-on-surface">Nenhum artifact encontrado</p>
+        <p className="font-headline text-3xl font-bold text-on-surface">Nenhum bookmark encontrado</p>
         <p className="mx-auto mt-3 max-w-xl text-sm text-on-surface-variant">
           Importe um arquivo de bookmarks ou conecte sua conta do X para começar a preencher esta biblioteca.
         </p>
@@ -95,7 +95,7 @@ export function BookmarkList({ onSelectBookmark }) {
       <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
         <div>
           <p className="font-label text-xs font-semibold uppercase tracking-[0.32em] text-primary/80">Dashboard Home</p>
-          <h2 className="mt-2 font-headline text-4xl font-extrabold tracking-tight text-on-surface">Recent Artifacts</h2>
+          <h2 className="mt-2 font-headline text-4xl font-extrabold tracking-tight text-on-surface">Recent Bookmarks</h2>
           <p className="mt-3 max-w-2xl text-sm text-on-surface-variant">
             Curadoria viva dos seus bookmarks mais recentes, com mídia, links e autores reais carregados do SQLite local.
           </p>

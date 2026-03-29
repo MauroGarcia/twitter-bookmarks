@@ -5,6 +5,14 @@ import { normalizeBookmarks } from '../lib/bookmark-utils'
 
 const BOOKMARK_BATCH_SIZE = 12
 
+function buildBookmarksCacheKey(filters = {}) {
+  return JSON.stringify({
+    view: filters.view || 'all',
+    tag: filters.tag || '',
+    search: filters.search || ''
+  })
+}
+
 function normalizePageResult(result, offset, limit) {
   if (Array.isArray(result)) {
     const items = result.slice(offset, offset + limit)
@@ -38,13 +46,17 @@ export const useAppStore = create((set, get) => ({
   // Estado
   bookmarks: [],
   tags: [],
+  activeView: 'all',
   selectedTag: null,
   searchQuery: '',
   selectedBookmark: null,
-  stats: { bookmarksCount: 0, tagsCount: 0, notesCount: 0 },
+  stats: { bookmarksCount: 0, tagsCount: 0, notesCount: 0, favoritesCount: 0, archivedCount: 0 },
   isLoading: false,
   isLoadingMore: false,
   hasMoreBookmarks: false,
+  transitioningBookmarkIds: [],
+  bookmarksCache: {},
+  bookmarkMutationVersion: {},
   isUsingMockData: false,
   bookmarksRequestId: 0,
   importDialog: false,
@@ -54,6 +66,7 @@ export const useAppStore = create((set, get) => ({
   // Ações
   setBookmarks: (bookmarks) => set({ bookmarks }),
   setTags: (tags) => set({ tags }),
+  setActiveView: (activeView) => set({ activeView }),
   setSelectedTag: (tag) => set({ selectedTag: tag }),
   setSearchQuery: (query) => set({ searchQuery: query }),
   setSelectedBookmark: (bookmark) => set({ selectedBookmark: bookmark }),
@@ -73,9 +86,23 @@ export const useAppStore = create((set, get) => ({
     const filters = {
       tag: state.selectedTag,
       search: state.searchQuery,
+      view: state.activeView,
       offset,
       limit
     }
+    const cacheKey = buildBookmarksCacheKey(filters)
+    const cachedCollection = state.bookmarksCache[cacheKey]
+
+    if (cachedCollection) {
+      set({
+        bookmarks: cachedCollection.bookmarks,
+        hasMoreBookmarks: cachedCollection.hasMore,
+        isLoading: false,
+        isLoadingMore: false
+      })
+      return
+    }
+
     const requestId = state.bookmarksRequestId + 1
     const shouldPreferMockData = state.isUsingMockData
 
@@ -99,6 +126,13 @@ export const useAppStore = create((set, get) => ({
         set({
           bookmarks: normalizeBookmarks(page.items),
           hasMoreBookmarks: page.hasMore,
+          bookmarksCache: {
+            ...get().bookmarksCache,
+            [cacheKey]: {
+              bookmarks: normalizeBookmarks(page.items),
+              hasMore: page.hasMore
+            }
+          },
           stats: mockStats,
           isUsingMockData: true
         })
@@ -124,6 +158,13 @@ export const useAppStore = create((set, get) => ({
         set({
           bookmarks: normalizeBookmarks(mockPage.items),
           hasMoreBookmarks: mockPage.hasMore,
+          bookmarksCache: {
+            ...get().bookmarksCache,
+            [cacheKey]: {
+              bookmarks: normalizeBookmarks(mockPage.items),
+              hasMore: mockPage.hasMore
+            }
+          },
           stats: mockStats,
           isUsingMockData: true
         })
@@ -133,6 +174,13 @@ export const useAppStore = create((set, get) => ({
       set({
         bookmarks: normalizeBookmarks(page.items),
         hasMoreBookmarks: page.hasMore,
+        bookmarksCache: {
+          ...get().bookmarksCache,
+          [cacheKey]: {
+            bookmarks: normalizeBookmarks(page.items),
+            hasMore: page.hasMore
+          }
+        },
         isUsingMockData: false
       })
     } catch (error) {
@@ -150,6 +198,13 @@ export const useAppStore = create((set, get) => ({
         set({
           bookmarks: normalizeBookmarks(page.items),
           hasMoreBookmarks: page.hasMore,
+          bookmarksCache: {
+            ...get().bookmarksCache,
+            [cacheKey]: {
+              bookmarks: normalizeBookmarks(page.items),
+              hasMore: page.hasMore
+            }
+          },
           stats: mockStats,
           isUsingMockData: true
         })
@@ -172,9 +227,11 @@ export const useAppStore = create((set, get) => ({
     const filters = {
       tag: state.selectedTag,
       search: state.searchQuery,
+      view: state.activeView,
       offset,
       limit
     }
+    const cacheKey = buildBookmarksCacheKey(filters)
     const requestId = state.bookmarksRequestId + 1
     const shouldPreferMockData = state.isUsingMockData
 
@@ -195,6 +252,13 @@ export const useAppStore = create((set, get) => ({
 
       set((currentState) => ({
         bookmarks: normalizeBookmarks([...currentState.bookmarks, ...page.items]),
+        bookmarksCache: {
+          ...currentState.bookmarksCache,
+          [cacheKey]: {
+            bookmarks: normalizeBookmarks([...currentState.bookmarks, ...page.items]),
+            hasMore: page.hasMore
+          }
+        },
         hasMoreBookmarks: page.hasMore,
         isUsingMockData: shouldPreferMockData
       }))
@@ -211,6 +275,13 @@ export const useAppStore = create((set, get) => ({
 
         set((currentState) => ({
           bookmarks: normalizeBookmarks([...currentState.bookmarks, ...page.items]),
+          bookmarksCache: {
+            ...currentState.bookmarksCache,
+            [cacheKey]: {
+              bookmarks: normalizeBookmarks([...currentState.bookmarks, ...page.items]),
+              hasMore: page.hasMore
+            }
+          },
           hasMoreBookmarks: page.hasMore,
           isUsingMockData: true
         }))
@@ -246,6 +317,130 @@ export const useAppStore = create((set, get) => ({
       console.error('Erro ao carregar stats:', error)
       const stats = await mockApi.getStats()
       set({ stats, isUsingMockData: true })
+    }
+  },
+
+  toggleBookmarkFavorite: async (bookmarkId) => {
+    const state = get()
+    const bookmark = state.bookmarks.find((item) => item.id === bookmarkId) || state.selectedBookmark
+
+    if (!bookmark) {
+      return
+    }
+
+    const nextValue = !bookmark.is_favorite
+    const mutationApi = state.isUsingMockData ? mockApi : api
+    const mutationVersion = Date.now()
+
+    set((currentState) => {
+      const shouldRemove = currentState.activeView === 'favorites' && !nextValue
+      const nextBookmarks = shouldRemove
+        ? currentState.bookmarks.filter((item) => item.id !== bookmarkId)
+        : currentState.bookmarks.map((item) =>
+            item.id === bookmarkId
+              ? { ...item, is_favorite: nextValue }
+              : item
+          )
+
+      return {
+        bookmarks: nextBookmarks,
+        bookmarksCache: {},
+        bookmarkMutationVersion: {
+          ...currentState.bookmarkMutationVersion,
+          [bookmarkId]: mutationVersion
+        },
+        selectedBookmark: currentState.selectedBookmark?.id === bookmarkId
+          ? { ...currentState.selectedBookmark, is_favorite: nextValue }
+          : currentState.selectedBookmark,
+        stats: {
+          ...currentState.stats,
+          favoritesCount: bookmark.is_archived
+            ? currentState.stats.favoritesCount || 0
+            : Math.max(
+                0,
+                (currentState.stats.favoritesCount || 0) + (nextValue ? 1 : -1)
+              )
+        }
+      }
+    })
+
+    try {
+      await mutationApi.setBookmarkFavorite(bookmarkId, nextValue)
+    } catch (error) {
+      console.error('Erro ao atualizar favorito:', error)
+      set({ bookmarksCache: {} })
+      await get().loadStats()
+      await get().loadBookmarks()
+    }
+  },
+
+  toggleBookmarkArchived: async (bookmarkId) => {
+    const state = get()
+    const bookmark = state.bookmarks.find((item) => item.id === bookmarkId) || state.selectedBookmark
+
+    if (!bookmark) {
+      return
+    }
+
+    const nextValue = !bookmark.is_archived
+    const shouldFadeOut = nextValue && state.activeView !== 'archived'
+    const mutationApi = state.isUsingMockData ? mockApi : api
+    const mutationVersion = Date.now()
+
+    if (shouldFadeOut) {
+      set((currentState) => ({
+        transitioningBookmarkIds: [...new Set([...currentState.transitioningBookmarkIds, bookmarkId])]
+      }))
+      await new Promise((resolve) => setTimeout(resolve, 140))
+    }
+
+    set((currentState) => {
+      const shouldRemove = nextValue
+        ? currentState.activeView !== 'archived'
+        : currentState.activeView === 'archived'
+
+      const nextBookmarks = shouldRemove
+        ? currentState.bookmarks.filter((item) => item.id !== bookmarkId)
+        : currentState.bookmarks.map((item) =>
+            item.id === bookmarkId
+              ? { ...item, is_archived: nextValue }
+              : item
+          )
+
+      return {
+        bookmarks: nextBookmarks,
+        bookmarksCache: {},
+        bookmarkMutationVersion: {
+          ...currentState.bookmarkMutationVersion,
+          [bookmarkId]: mutationVersion
+        },
+        selectedBookmark: currentState.selectedBookmark?.id === bookmarkId
+          ? { ...currentState.selectedBookmark, is_archived: nextValue }
+          : currentState.selectedBookmark,
+        transitioningBookmarkIds: currentState.transitioningBookmarkIds.filter((id) => id !== bookmarkId),
+        stats: {
+          ...currentState.stats,
+          favoritesCount: bookmark.is_favorite
+            ? Math.max(0, (currentState.stats.favoritesCount || 0) + (nextValue ? -1 : 1))
+            : currentState.stats.favoritesCount || 0,
+          archivedCount: Math.max(
+            0,
+            (currentState.stats.archivedCount || 0) + (nextValue ? 1 : -1)
+          )
+        }
+      }
+    })
+
+    try {
+      await mutationApi.setBookmarkArchived(bookmarkId, nextValue)
+    } catch (error) {
+      console.error('Erro ao atualizar arquivamento:', error)
+      set((currentState) => ({
+        transitioningBookmarkIds: currentState.transitioningBookmarkIds.filter((id) => id !== bookmarkId),
+        bookmarksCache: {}
+      }))
+      await get().loadStats()
+      await get().loadBookmarks()
     }
   }
 }))
