@@ -1,6 +1,8 @@
 import { normalizeBookmarks } from '../lib/bookmark-utils'
+import { parseTwitterBookmarksExport } from '../lib/twitter-bookmarks-import'
 
 const MOCK_BOOKMARK_STATE_STORAGE_KEY = 'twitter-bookmarks.mock-state.v1'
+const MOCK_IMPORTED_BOOKMARKS_STORAGE_KEY = 'twitter-bookmarks.mock-imported.v1'
 
 const rawMockBookmarks = [
   {
@@ -490,6 +492,20 @@ function loadStoredMockState() {
   }
 }
 
+function loadStoredImportedBookmarks() {
+  if (typeof window === 'undefined' || !window.localStorage) {
+    return []
+  }
+
+  try {
+    const rawValue = window.localStorage.getItem(MOCK_IMPORTED_BOOKMARKS_STORAGE_KEY)
+    const parsedValue = rawValue ? JSON.parse(rawValue) : []
+    return Array.isArray(parsedValue) ? parsedValue : []
+  } catch {
+    return []
+  }
+}
+
 function persistMockState(bookmarks) {
   if (typeof window === 'undefined' || !window.localStorage) {
     return
@@ -508,10 +524,37 @@ function persistMockState(bookmarks) {
   window.localStorage.setItem(MOCK_BOOKMARK_STATE_STORAGE_KEY, JSON.stringify(stateToPersist))
 }
 
+function persistImportedBookmarks(bookmarks) {
+  if (typeof window === 'undefined' || !window.localStorage) {
+    return
+  }
+
+  const importedBookmarks = bookmarks.filter((bookmark) => bookmark.source === 'imported')
+  window.localStorage.setItem(MOCK_IMPORTED_BOOKMARKS_STORAGE_KEY, JSON.stringify(importedBookmarks))
+}
+
 const storedMockState = loadStoredMockState()
+const storedImportedBookmarks = loadStoredImportedBookmarks()
 const mockBookmarks = normalizeBookmarks(
-  rawMockBookmarks.map((item, index) => {
-    const bookmark = transformBookmark(item, index)
+  [
+    ...rawMockBookmarks.map((item, index) => {
+      const bookmark = transformBookmark(item, index)
+      const storedState = storedMockState[bookmark.id]
+
+      return storedState
+        ? {
+            ...bookmark,
+            is_favorite: Boolean(storedState.is_favorite),
+            is_archived: Boolean(storedState.is_archived)
+          }
+        : bookmark
+    }),
+    ...storedImportedBookmarks
+  ].map((bookmark, index) => {
+    if (bookmark.tweet) {
+      return transformBookmark(bookmark, index)
+    }
+
     const storedState = storedMockState[bookmark.id]
 
     return storedState
@@ -524,6 +567,57 @@ const mockBookmarks = normalizeBookmarks(
   })
 )
 
+function createImportedBookmark(tweet) {
+  const id = tweet.id
+  const authorHandle = tweet.user?.screen_name || 'unknown'
+
+  return {
+    id,
+    tweet_url: `https://twitter.com/${authorHandle}/status/${id}`,
+    full_text: tweet.full_text || '',
+    author_name: tweet.user?.name || 'Unknown',
+    author_handle: authorHandle,
+    author_avatar_url: tweet.user?.profile_image_url_https || null,
+    created_at: tweet.created_at || new Date().toISOString(),
+    imported_at: new Date().toISOString(),
+    like_count: tweet.favorite_count || 0,
+    retweet_count: tweet.retweet_count || 0,
+    has_media: (tweet.extended_entities?.media?.length ?? 0) > 0,
+    media_urls: tweet.extended_entities?.media?.map((media) => media.media_url_https) || null,
+    urls: tweet.entities?.urls?.map((url) => ({ url: url.url, expanded_url: url.expanded_url })) || null,
+    quoted_tweet: tweet.quoted_tweet || null,
+    raw_json: tweet,
+    is_favorite: false,
+    is_archived: false,
+    tags: [],
+    source: 'imported'
+  }
+}
+
+function persistMockBookmarks(bookmarks) {
+  persistMockState(bookmarks)
+  persistImportedBookmarks(bookmarks)
+}
+
+function upsertImportedBookmarks(items) {
+  const bookmarksById = new Map(mockBookmarks.map((bookmark) => [bookmark.id, bookmark]))
+  let importedCount = 0
+
+  for (const item of items) {
+    if (!item?.tweet?.id || bookmarksById.has(item.tweet.id)) {
+      continue
+    }
+
+    const bookmark = normalizeBookmarks([createImportedBookmark(item.tweet)])[0]
+    mockBookmarks.unshift(bookmark)
+    bookmarksById.set(bookmark.id, bookmark)
+    importedCount += 1
+  }
+
+  persistMockBookmarks(mockBookmarks)
+  return importedCount
+}
+
 function updateMockBookmark(id, updater) {
   const bookmark = mockBookmarks.find((item) => item.id === id)
 
@@ -533,7 +627,7 @@ function updateMockBookmark(id, updater) {
 
   const updates = updater(bookmark)
   Object.assign(bookmark, updates)
-  persistMockState(mockBookmarks)
+  persistMockBookmarks(mockBookmarks)
   return bookmark
 }
 
@@ -652,8 +746,25 @@ export const mockApi = {
     return null
   },
 
-  async importBookmarks() {
-    throw new Error('Importação via arquivo não disponível na versão web')
+  async importBookmarks(payload = {}) {
+    const rawContent = typeof payload === 'string'
+      ? payload
+      : payload?.content
+
+    if (!rawContent) {
+      throw new Error('Nenhum arquivo foi selecionado para importação')
+    }
+
+    const data = parseTwitterBookmarksExport(rawContent)
+    const imported = upsertImportedBookmarks(data)
+
+    return {
+      success: true,
+      imported,
+      message: imported > 0
+        ? `${imported} bookmarks importados com sucesso`
+        : 'Nenhum bookmark novo foi importado'
+    }
   },
 
   async getStats() {

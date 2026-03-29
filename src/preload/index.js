@@ -25,7 +25,7 @@ const api = {
   deleteNote: (bookmarkId) => ipcRenderer.invoke('notes:delete', bookmarkId),
 
   // Import
-  importBookmarks: () => ipcRenderer.invoke('import:run'),
+  importBookmarks: (payload) => ipcRenderer.invoke('import:run', payload),
 
   // Stats
   getStats: () => ipcRenderer.invoke('app:getStats')

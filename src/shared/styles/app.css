@@ -38,7 +38,7 @@ body {
   }
 
   .modal-container {
-    @apply w-full rounded-xl border border-outline-variant/10 bg-surface-container shadow-cyan;
+    @apply w-full overflow-hidden rounded-xl border border-outline-variant/10 bg-surface-container shadow-cyan;
   }
 
   .modal-header {

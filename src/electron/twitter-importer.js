@@ -1,25 +1,10 @@
 import fs from 'fs'
 import * as db from './db.js'
+import { parseTwitterBookmarksExport } from '../shared/lib/twitter-bookmarks-import.js'
 
 export async function importBookmarks(filePath) {
-  // Ler o arquivo
   const raw = fs.readFileSync(filePath, 'utf8')
-
-  // Remover o prefixo "window.YTD.bookmarks.part0 = "
-  const jsonStr = raw.replace(/^window\.YTD\.bookmarks\.part\d+ = /, '').trim()
-
-  // Parse JSON
-  let data
-  try {
-    data = JSON.parse(jsonStr)
-  } catch (error) {
-    throw new Error(`Erro ao fazer parse do JSON: ${error.message}`)
-  }
-
-  // Garantir que é um array
-  if (!Array.isArray(data)) {
-    throw new Error('Formato de arquivo inválido')
-  }
+  const data = parseTwitterBookmarksExport(raw)
 
   // Usar transaction para garantir integridade dos dados
   // Se algo falhar no meio do import, tudo é revertido

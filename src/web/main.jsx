@@ -134,7 +134,7 @@ const httpApi = {
     mockApi.deleteNote
   ),
 
-  importBookmarks: mockApi.importBookmarks,
+  importBookmarks: (payload) => mockApi.importBookmarks(payload),
   getStats: withMockFallbackOnEmpty(
     () => fetchJson('/api/stats'),
     mockApi.getStats,
