@@ -7,6 +7,70 @@ import { Input } from './ui/Input'
 const HASH_TRIGGER_REGEX = /(?:^|\s)#([^\s#]*)$/
 const AUTHOR_TRIGGER_REGEX = /(?:^|\s)@([^\s@]*)$/
 const MAX_VISIBLE_CHIPS = 2
+const MAX_SUGGESTION_RESULTS = 6
+const SUGGESTION_INDEX_TOKEN_SIZE = 3
+
+function normalizeSuggestionValue(value) {
+  return `${value}`.trim().toLowerCase()
+}
+
+function collectSuggestionTokens(value) {
+  const normalizedValue = normalizeSuggestionValue(value)
+
+  if (!normalizedValue) {
+    return []
+  }
+
+  const tokens = new Set()
+
+  for (let start = 0; start < normalizedValue.length; start += 1) {
+    for (
+      let size = 1;
+      size <= SUGGESTION_INDEX_TOKEN_SIZE && start + size <= normalizedValue.length;
+      size += 1
+    ) {
+      tokens.add(normalizedValue.slice(start, start + size))
+    }
+  }
+
+  return Array.from(tokens)
+}
+
+function buildSuggestionIndex(items, buildSearchValue, buildKey) {
+  const records = items.map((item) => ({
+    item,
+    key: normalizeSuggestionValue(buildKey(item)),
+    searchValue: normalizeSuggestionValue(buildSearchValue(item))
+  }))
+  const tokenMap = new Map()
+
+  records.forEach((record) => {
+    collectSuggestionTokens(record.searchValue).forEach((token) => {
+      const currentEntries = tokenMap.get(token)
+      if (currentEntries) {
+        currentEntries.push(record)
+        return
+      }
+
+      tokenMap.set(token, [record])
+    })
+  })
+
+  return {
+    records,
+    tokenMap
+  }
+}
+
+function getIndexedSuggestionCandidates(index, query) {
+  const normalizedQuery = normalizeSuggestionValue(query)
+
+  if (!normalizedQuery) {
+    return index.records
+  }
+
+  return index.tokenMap.get(normalizedQuery.slice(0, SUGGESTION_INDEX_TOKEN_SIZE)) || []
+}
 
 function stripPendingTagToken(value) {
   return `${value}`.replace(HASH_TRIGGER_REGEX, ' ')
@@ -20,32 +84,27 @@ function normalizeSearchText(value) {
   return stripPendingAuthorToken(stripPendingTagToken(value)).replace(/\s+/g, ' ').trim()
 }
 
-function buildTagSuggestions(tags, selectedTags, query) {
-  const normalizedQuery = `${query}`.trim().toLowerCase()
-  const selectedTagSet = new Set(selectedTags.map((tag) => tag.toLowerCase()))
+function buildTagSuggestions(tagIndex, selectedTags, query) {
+  const normalizedQuery = normalizeSuggestionValue(query)
+  const selectedTagSet = new Set(selectedTags.map((tag) => normalizeSuggestionValue(tag)))
 
-  return tags
-    .filter((tag) => !selectedTagSet.has(tag.name.toLowerCase()))
-    .filter((tag) => !normalizedQuery || tag.name.toLowerCase().includes(normalizedQuery))
-    .slice(0, 6)
+  return getIndexedSuggestionCandidates(tagIndex, normalizedQuery)
+    .filter((record) => !selectedTagSet.has(record.key))
+    .filter((record) => !normalizedQuery || record.searchValue.includes(normalizedQuery))
+    .slice(0, MAX_SUGGESTION_RESULTS)
+    .map((record) => record.item)
 }
 
-function buildAuthorSuggestions(authors, selectedAuthors, query) {
-  const normalizedQuery = `${query}`.trim().toLowerCase()
-  const selectedAuthorSet = new Set(selectedAuthors.map((author) => author.toLowerCase()))
+function buildAuthorSuggestions(authorIndex, selectedAuthors, query) {
+  const normalizedQuery = normalizeSuggestionValue(query)
+  const selectedAuthorSet = new Set(selectedAuthors.map((author) => normalizeSuggestionValue(author)))
 
-  return authors
-    .filter((author) => {
-      const handle = `${author.handle || ''}`.trim()
-      if (!handle) return false
-      if (selectedAuthorSet.has(handle.toLowerCase())) return false
-
-      if (!normalizedQuery) return true
-
-      const haystack = `${handle} ${author.name || ''}`.toLowerCase()
-      return haystack.includes(normalizedQuery)
-    })
-    .slice(0, 6)
+  return getIndexedSuggestionCandidates(authorIndex, normalizedQuery)
+    .filter((record) => record.key)
+    .filter((record) => !selectedAuthorSet.has(record.key))
+    .filter((record) => !normalizedQuery || record.searchValue.includes(normalizedQuery))
+    .slice(0, MAX_SUGGESTION_RESULTS)
+    .map((record) => record.item)
 }
 
 function splitVisibleChips(items) {
@@ -120,14 +179,26 @@ function BookmarkSearchInput() {
   const tagQuery = tagTriggerMatch ? tagTriggerMatch[1] : ''
   const authorQuery = authorTriggerMatch ? authorTriggerMatch[1] : ''
   const activeTrigger = tagTriggerMatch ? 'tag' : authorTriggerMatch ? 'author' : null
+  const tagSuggestionIndex = useMemo(
+    () => buildSuggestionIndex(tags, (tag) => tag.name, (tag) => tag.name),
+    [tags]
+  )
+  const authorSuggestionIndex = useMemo(
+    () => buildSuggestionIndex(
+      authors,
+      (author) => `${author.handle || ''} ${author.name || ''}`,
+      (author) => author.handle || ''
+    ),
+    [authors]
+  )
 
   const tagSuggestions = useMemo(
-    () => buildTagSuggestions(tags, searchTagNames, tagQuery),
-    [searchTagNames, tagQuery, tags]
+    () => buildTagSuggestions(tagSuggestionIndex, searchTagNames, tagQuery),
+    [searchTagNames, tagQuery, tagSuggestionIndex]
   )
   const authorSuggestions = useMemo(
-    () => buildAuthorSuggestions(authors, searchAuthorHandles, authorQuery),
-    [authorQuery, authors, searchAuthorHandles]
+    () => buildAuthorSuggestions(authorSuggestionIndex, searchAuthorHandles, authorQuery),
+    [authorQuery, authorSuggestionIndex, searchAuthorHandles]
   )
   const hasSuggestions = activeTrigger === 'tag'
     ? tagSuggestions.length > 0
