@@ -1,4 +1,5 @@
 import { Plus } from 'lucide-react'
+import { MdAutoAwesomeMotion, MdAutoAwesome } from 'react-icons/md'
 import { useAppStore } from '../store/appStore'
 
 export function Sidebar({ onImport }) {
@@ -8,8 +9,8 @@ export function Sidebar({ onImport }) {
     <aside className="w-72 bg-[#121222]/80 backdrop-blur-xl rounded-r-xl sticky top-0 h-screen flex flex-col py-8 px-6 shadow-cyan z-50">
       {/* Logo */}
       <div className="mb-10 flex items-center gap-3">
-        <div className="w-10 h-10 rounded-lg bg-neon-gradient flex items-center justify-center text-xl">
-          ✨
+        <div className="w-10 h-10 rounded-lg bg-neon-gradient flex items-center justify-center">
+          <MdAutoAwesomeMotion size={24} className="text-on-primary-fixed" />
         </div>
         <div>
           <h1 className="font-headline text-2xl font-bold tracking-tighter text-primary">
@@ -25,13 +26,13 @@ export function Sidebar({ onImport }) {
       <nav className="flex-1 space-y-2 mb-6">
         <button
           onClick={() => setSelectedTag(null)}
-          className={`w-full flex items-center gap-4 px-4 py-3 rounded-lg transition-all duration-200 font-headline font-bold ${
+          className={`w-full flex items-center gap-4 px-4 py-3 rounded-lg transition-all duration-300 font-headline font-bold ${
             selectedTag === null
-              ? 'bg-surface-container-high text-secondary scale-105'
-              : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high'
+              ? 'bg-surface-container-high text-secondary scale-105 shadow-glow-sm'
+              : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high hover:scale-105 hover:shadow-glow-sm'
           }`}
         >
-          <span>📚</span>
+          <MdAutoAwesomeMotion size={20} />
           <span>Library</span>
         </button>
 
