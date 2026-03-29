@@ -319,9 +319,9 @@ TAG-007     ? Criar tag inline em detail
 
 ### A. Arquivos Críticos para Teste
 ```
-/src/main/db.js              (DB layer - core)
-/src/main/twitter-importer.js (Import logic - error prone)
-/src/main/ipc-handlers.js    (API endpoints - security)
+/src/electron/db.js              (DB layer - core)
+/src/electron/twitter-importer.js (Import logic - error prone)
+/src/electron/ipc-handlers.js    (API endpoints - security)
 /src/renderer/store/appStore.js (State - coordination)
 /src/renderer/components/BookmarkList.jsx (Performance bottleneck)
 ```
@@ -355,3 +355,6 @@ sqlite> .schema bookmarks_fts
 **Data:** 2026-03-28
 **Status:** DRAFT - Pronto para revisão com Design + Dev team
 **Próxima Revisão:** Após implementação dos bugs CRÍTICA
+
+
+

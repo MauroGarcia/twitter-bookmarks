@@ -30,7 +30,7 @@ export function SearchBar() {
         value={inputValue}
         onChange={(e) => setInputValue(e.target.value)}
         disabled={isLoading}
-        className="w-full bg-surface-container-lowest border border-outline-variant/20 rounded-lg py-2.5 pl-12 pr-12 text-sm text-on-surface focus:ring-1 focus:ring-secondary/40 focus:outline-none placeholder:text-on-surface-variant/40 transition-all disabled:opacity-50"
+        className="search-input w-full appearance-none rounded-layout border-none bg-[#000000] py-2.5 pl-12 pr-12 text-sm text-on-surface shadow-none outline-none ring-0 transition-all placeholder:text-on-surface-variant/40 focus:bg-[#000000] focus:outline-none focus:ring-1 focus:ring-secondary/40 disabled:opacity-50"
         data-testid="search-input"
       />
       <div className="absolute right-4 top-1/2 transform -translate-y-1/2 flex items-center gap-2">

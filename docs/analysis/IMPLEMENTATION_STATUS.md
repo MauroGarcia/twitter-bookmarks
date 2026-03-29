@@ -20,7 +20,7 @@ Todas as 6 fases do plano foram implementadas com sucesso!
 
 **Arquivos criados:**
 - `electron.vite.config.mjs` - Configuração do build
-- `src/main/` - Processo principal do Electron
+- `src/electron/` - Processo principal do Electron
 - `src/renderer/` - Aplicação React
 - `package.json` com scripts dev/build/dist
 
@@ -46,7 +46,7 @@ Todas as 6 fases do plano foram implementadas com sucesso!
 - Feedback ao usuário (sucesso/erro)
 - Ignora duplicatas (por tweet ID)
 
-**Teste:** `test-bookmarks.js` e `test-import.mjs`
+**Teste:** `tests/manual/test-bookmarks.js` e `tests/manual/test-import.mjs`
 
 **Status:** Pronto para uso
 
@@ -355,3 +355,5 @@ npm run preview   # Preview production build
 **Projeto concluído com sucesso! 🎉**
 
 O Twitter Bookmarks Organizer está pronto para uso e distribuição.
+
+

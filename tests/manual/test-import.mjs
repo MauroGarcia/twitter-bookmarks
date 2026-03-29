@@ -1,5 +1,5 @@
-import { importBookmarks } from './src/main/twitter-importer.js'
-import { initDb, getBookmarks, getAllTags, getStats } from './src/main/db.js'
+import { importBookmarks } from '../../src/electron/twitter-importer.js'
+import { initDb, getBookmarks, getStats } from '../../src/electron/db.js'
 import path from 'path'
 
 // Usar banco de testes
@@ -14,7 +14,7 @@ async function test() {
     console.log('✓ BD inicializado')
 
     // Importar do arquivo de teste
-    const filePath = path.join(process.cwd(), 'test-bookmarks.js')
+    const filePath = path.join(process.cwd(), 'tests', 'manual', 'test-bookmarks.js')
     const imported = await importBookmarks(filePath)
     console.log(`✓ ${imported} bookmarks importados\n`)
 
@@ -45,3 +45,4 @@ async function test() {
 }
 
 test()
+

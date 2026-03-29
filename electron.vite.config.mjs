@@ -7,17 +7,21 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 export default defineConfig({
   main: {
-    entry: 'src/main/index.js',
-    vite: {
-      build: {
-        rollupOptions: {
-          external: ['better-sqlite3']
-        }
+    build: {
+      lib: {
+        entry: 'src/electron/index.js'
+      },
+      rollupOptions: {
+        external: ['better-sqlite3']
       }
     }
   },
   preload: {
-    entry: 'src/preload/index.js'
+    build: {
+      lib: {
+        entry: 'src/preload/index.js'
+      }
+    }
   },
   renderer: {
     entry: 'src/renderer/main.jsx',
@@ -25,7 +29,7 @@ export default defineConfig({
     plugins: [react()],
     resolve: {
       alias: {
-        '@': path.resolve(__dirname, './src/renderer')
+        '@': path.resolve(__dirname, './src/shared')
       }
     }
   }

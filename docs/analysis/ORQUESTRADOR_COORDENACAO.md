@@ -232,7 +232,7 @@ expect(bookmarks).toHaveCount(20)
 - [ ] **Frontend:** Update `BookmarkList.jsx` → remover loop de tags
 - [ ] **QA Test:** Performance test com 1000+ bookmarks (target: <500ms)
 - [ ] **Design Validation:** Visual check - sem lag no scroll
-- **Arquivos:** `src/main/ipc-handlers.js`, `src/renderer/store/appStore.js`, `src/renderer/components/BookmarkList.jsx`
+- **Arquivos:** `src/electron/ipc-handlers.js`, `src/renderer/store/appStore.js`, `src/renderer/components/BookmarkList.jsx`
 
 #### Task 2: Debounce Search + ConfirmDialog (Design + QA)
 - [ ] **Frontend:** Novo hook `useDebounce.js` (300ms)
@@ -246,13 +246,13 @@ expect(bookmarks).toHaveCount(20)
 #### Task 3: Data Transaction Fix (Backend - QA focus)
 - [ ] **Backend:** Update `twitter-importer.js` → envolver em `db.transaction()`
 - [ ] **QA Test:** Simulate failure in middle of import, validate rollback
-- **Arquivo:** `src/main/twitter-importer.js`
+- **Arquivo:** `src/electron/twitter-importer.js`
 
 #### Task 4: Error Handling (Backend - QA focus)
 - [ ] **Backend:** Add try-catch em todos `ipc-handlers.js` handlers
 - [ ] **Backend:** Log errors com stack trace
 - [ ] **QA Test:** Trigger errors, validate graceful handling
-- **Arquivo:** `src/main/ipc-handlers.js`
+- **Arquivo:** `src/electron/ipc-handlers.js`
 
 ### SPRINT 2 - Médios
 
@@ -365,3 +365,5 @@ expect(bookmarks).toHaveCount(20)
 Ambos os agentes completaram suas análises, identificaram convergência nos problemas críticos, e propuseram soluções testáveis e mensuráveis.
 
 **Sua próxima ação:** Abra `START_HERE.md` (Design) + `COMECE_AQUI.txt` (QA) e comece Sprint 1!
+
+

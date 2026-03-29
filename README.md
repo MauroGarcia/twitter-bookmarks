@@ -84,31 +84,22 @@ npm run pack      # Empacota sem criar instalador
 ## 📁 Estrutura do Projeto
 
 ```
+docs/
+├── analysis/                 # Auditorias, QA, comparativos visuais e guias de implementação
 src/
-├── main/
-│   ├── index.js              # Entry Electron
-│   ├── db.js                 # SQLite schema + queries
-│   ├── ipc-handlers.js       # IPC bridge (main ↔ renderer)
-│   └── twitter-importer.js   # Parser de bookmarks.js
-├── preload/
-│   └── index.js              # Context bridge (segurança)
-└── renderer/
-    ├── App.jsx               # Root React
-    ├── store/
-    │   └── appStore.js       # Zustand global state
-    ├── hooks/
-    │   ├── useBookmarks.js
-    │   └── useTags.js
-    └── components/
-        ├── BookmarkCard.jsx
-        ├── BookmarkList.jsx
-        ├── Sidebar.jsx
-        ├── SearchBar.jsx
-        ├── TweetDetail.jsx
-        ├── ImportDialog.jsx
-        ├── TagSelector.jsx
-        └── TagBadge.jsx
+├── electron/                 # Runtime Electron principal
+├── preload/                  # Context bridge (segurança)
+├── renderer/                 # Entry renderer Electron
+├── shared/                   # UI e lógica compartilhadas entre Electron e Web
+└── web/                      # Entry web
+tests/
+└── manual/                   # Scripts utilitários de teste local
 ```
+
+### Convenções mantidas na raiz
+
+- `.agents/`, `.claude/`, `.cortex/` e `skills/` foram mantidos na raiz porque são diretórios de tooling/assistentes e normalmente dependem dessa localização.
+- `electron.vite.config.mjs`, `vite.web.config.mjs`, `tailwind.config.js` e `package.json` permanecem na raiz por serem pontos de entrada de build.
 
 ## 🗄️ Banco de Dados
 
@@ -153,3 +144,5 @@ MIT
 ---
 
 **Made with ❤️ for managing your Twitter bookmarks**
+
+

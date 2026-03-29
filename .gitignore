@@ -13,3 +13,9 @@ out/
 .vscode/
 .DB*
 bookmarks.db
+.claude/
+.cortex/
+*.db
+*.db-shm
+*.db-wal
+

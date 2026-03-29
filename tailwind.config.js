@@ -3,6 +3,9 @@ export default {
   content: [
     "./src/renderer/index.html",
     "./src/renderer/**/*.{js,jsx,ts,tsx}",
+    "./src/shared/**/*.{js,jsx,ts,tsx}",
+    "./src/web/index.html",
+    "./src/web/**/*.{js,jsx,ts,tsx}",
   ],
   darkMode: "class",
   theme: {
@@ -44,6 +47,7 @@ export default {
         sans:     ["Inter", "system-ui", "sans-serif"],
       },
       borderRadius: {
+        layout:  "var(--radius-layout)",
         soft:    "16px",
         DEFAULT: "0.75rem",
         lg:      "1rem",

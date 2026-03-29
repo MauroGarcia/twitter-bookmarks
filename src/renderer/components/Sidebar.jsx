@@ -1,19 +1,18 @@
 import { Plus } from 'lucide-react'
-import { MdAutoAwesomeMotion, MdAutoAwesome } from 'react-icons/md'
 import { useAppStore } from '../store/appStore'
 
 export function Sidebar({ onImport }) {
-  const { tags, selectedTag, setSelectedTag, stats } = useAppStore()
+  const { tags, selectedTag, setSelectedTag } = useAppStore()
 
   return (
-    <aside className="w-72 bg-[#121222]/80 backdrop-blur-xl rounded-r-xl sticky top-0 h-screen flex flex-col py-8 px-6 shadow-cyan z-50">
+    <aside className="sticky top-0 z-50 flex h-screen w-72 flex-col rounded-r-layout bg-[#121222]/80 px-6 py-8 shadow-cyan backdrop-blur-xl">
       {/* Logo */}
       <div className="mb-10 flex items-center gap-3">
-        <div className="w-10 h-10 rounded-lg bg-neon-gradient flex items-center justify-center">
-          <MdAutoAwesomeMotion size={24} className="text-on-primary-fixed" />
+        <div className="flex h-10 w-10 items-center justify-center rounded-layout bg-gradient-to-br from-[#bb9eff] to-[#874cff]">
+          <span className="material-symbols-outlined text-[#000000]" style={{ fontVariationSettings: "'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}>auto_awesome_motion</span>
         </div>
         <div>
-          <h1 className="font-headline text-2xl font-bold tracking-tighter text-primary">
+          <h1 className="font-headline text-2xl font-bold tracking-tighter text-[#bb9eff]">
             The Curator
           </h1>
           <p className="font-headline text-[10px] uppercase tracking-widest text-on-surface/40">
@@ -26,13 +25,12 @@ export function Sidebar({ onImport }) {
       <nav className="flex-1 space-y-2 mb-6">
         <button
           onClick={() => setSelectedTag(null)}
-          className={`w-full flex items-center gap-4 px-4 py-3 rounded-lg transition-all duration-300 font-headline font-bold ${
-            selectedTag === null
-              ? 'bg-surface-container-high text-secondary scale-105 shadow-glow-sm'
-              : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high hover:scale-105 hover:shadow-glow-sm'
-          }`}
+          className={selectedTag === null
+            ? 'flex w-full scale-105 items-center gap-4 rounded-layout bg-[#1e1e32] px-4 py-3 font-headline font-bold text-[#00e3fd] transition-all duration-300 hover:bg-[#24243a]'
+            : 'flex w-full items-center gap-4 rounded-layout px-4 py-3 font-headline text-[#e6e3f9]/60 transition-colors duration-300 hover:bg-[#1e1e32] hover:text-[#00e3fd]'
+          }
         >
-          <MdAutoAwesomeMotion size={20} />
+          <span className="material-symbols-outlined">auto_awesome_motion</span>
           <span>Library</span>
         </button>
 
@@ -51,11 +49,10 @@ export function Sidebar({ onImport }) {
                 <button
                   key={tag.id}
                   onClick={() => setSelectedTag(tag.name)}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 text-sm ${
-                    selectedTag === tag.name
-                      ? 'bg-surface-container-high text-secondary font-semibold'
-                      : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high'
-                  }`}
+                  className={selectedTag === tag.name
+                    ? 'flex w-full items-center gap-3 rounded-layout bg-[#1e1e32] px-4 py-3 text-sm font-semibold text-[#00e3fd] transition-colors duration-300'
+                    : 'flex w-full items-center gap-3 rounded-layout px-4 py-3 text-sm text-on-surface-variant transition-colors duration-300 hover:bg-[#1e1e32] hover:text-[#e6e3f9]'
+                  }
                 >
                   <div
                     className="w-3 h-3 rounded-full flex-shrink-0"
@@ -76,7 +73,7 @@ export function Sidebar({ onImport }) {
       <div className="mb-6">
         <button
           onClick={onImport}
-          className="w-full py-4 rounded-lg bg-neon-gradient text-on-primary-fixed font-headline font-bold flex items-center justify-center gap-2 shadow-glow-sm hover:opacity-90 active:scale-95 transition-all"
+          className="flex w-full items-center justify-center gap-2 rounded-layout bg-neon-gradient py-4 font-headline font-bold text-on-primary-fixed shadow-glow-sm transition-all hover:opacity-90 active:scale-95"
         >
           <Plus size={20} />
           Importar
