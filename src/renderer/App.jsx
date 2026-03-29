@@ -35,15 +35,23 @@ export default function App() {
   }
 
   return (
-    <div className="flex h-screen bg-gray-100">
+    <div className="flex h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-white">
       <Sidebar onImport={() => setImportDialog(true)} />
 
       <main className="flex-1 flex flex-col overflow-hidden">
-        <div className="p-4 bg-white border-b border-gray-200">
-          <SearchBar />
+        <div className="bg-white border-b border-gray-200 shadow-sm">
+          <div className="p-4">
+            <div className="mb-2">
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-twitter-600 to-twitter-500 bg-clip-text text-transparent">
+                📚 Twitter Bookmarks
+              </h1>
+              <p className="text-sm text-gray-500 mt-1">Organize e pesquise seus bookmarks salvos</p>
+            </div>
+            <SearchBar />
+          </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4">
+        <div className="flex-1 overflow-y-auto p-6">
           <BookmarkList onSelectBookmark={handleSelectBookmark} />
         </div>
       </main>
