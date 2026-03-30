@@ -1,5 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron'
 
+console.log('[preload] script loaded')
+
 const api = {
   // Bookmarks
   getBookmarks: (filters) => ipcRenderer.invoke('bookmarks:get', filters),
@@ -27,9 +29,15 @@ const api = {
 
   // Import
   importBookmarks: (payload) => ipcRenderer.invoke('import:run', payload),
+  getXAuthStatus: () => ipcRenderer.invoke('x:getAuthStatus'),
+  saveXAuthConfig: (config) => ipcRenderer.invoke('x:saveConfig', config),
+  connectXAccount: (config) => ipcRenderer.invoke('x:connect', config),
+  disconnectXAccount: () => ipcRenderer.invoke('x:disconnect'),
+  syncXBookmarks: () => ipcRenderer.invoke('x:syncBookmarks'),
 
   // Stats
   getStats: () => ipcRenderer.invoke('app:getStats')
 }
 
 contextBridge.exposeInMainWorld('api', api)
+console.log('[preload] window.api exposed')

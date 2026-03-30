@@ -3,7 +3,7 @@ import { Archive, ExternalLink, Save, Star, Trash2 } from 'lucide-react'
 import { TagBadge } from './TagBadge'
 import { TagSelector } from './TagSelector'
 import { ConfirmDialog } from './ConfirmDialog'
-import { TweetText } from './BookmarkCard'
+import { ArticlePreview, TweetText } from './BookmarkCard'
 import { useAppStore } from '../store/appStore'
 import { api } from '../services/api'
 import { Avatar } from './ui/Avatar'
@@ -16,6 +16,7 @@ export function TweetDetail({ bookmark, tags = [], onClose }) {
   const [isEditingNote, setIsEditingNote] = useState(false)
   const [isEditingTags, setIsEditingTags] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [selectedImage, setSelectedImage] = useState(null)
   const [isFavoritingBurstVisible, setIsFavoritingBurstVisible] = useState(false)
   const loadBookmarks = useAppStore((state) => state.loadBookmarks)
   const toggleBookmarkFavorite = useAppStore((state) => state.toggleBookmarkFavorite)
@@ -86,9 +87,9 @@ export function TweetDetail({ bookmark, tags = [], onClose }) {
         isOpen={Boolean(bookmark)}
         onClose={onClose}
         title="Detalhes do Bookmark"
-        size="lg"
-        containerClassName="max-h-[80vh] overflow-y-auto"
-        bodyClassName="space-y-6 p-6"
+        size="xl"
+        containerClassName="max-h-[88vh]"
+        bodyClassName="space-y-6 overflow-y-auto p-6"
       >
         <div className="border-b border-outline-variant/10 pb-4">
           <div className="mb-3 flex gap-3">
@@ -127,7 +128,27 @@ export function TweetDetail({ bookmark, tags = [], onClose }) {
 
           <TweetText text={bookmark.full_text} className="mb-3 font-body text-on-surface/80" />
 
-          {bookmark.mediaUrls?.length > 0 && (
+          {bookmark.article_data?.media_urls?.[0] && (
+            <button
+              type="button"
+              onClick={() => setSelectedImage(bookmark.article_data.media_urls[0])}
+              className="mb-4 block w-full overflow-hidden rounded-lg border border-outline-variant/10"
+            >
+              <img
+                src={bookmark.article_data.media_urls[0]}
+                alt={bookmark.article_data.title || bookmark.author_name}
+                className="w-full object-contain bg-black/20"
+              />
+            </button>
+          )}
+
+          {bookmark.article_data && (
+            <div className="mb-3">
+              <ArticlePreview article={bookmark.article_data} onImageClick={setSelectedImage} />
+            </div>
+          )}
+
+          {!bookmark.article_data && bookmark.mediaUrls?.length > 0 && (
             <div className="mb-3 overflow-hidden rounded-lg border border-outline-variant/10">
               <img
                 src={bookmark.mediaUrls[0]}
@@ -282,6 +303,19 @@ export function TweetDetail({ bookmark, tags = [], onClose }) {
         onConfirm={handleDeleteBookmark}
         onCancel={() => setShowDeleteConfirm(false)}
       />
+
+      {selectedImage && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/85 p-6"
+          onClick={() => setSelectedImage(null)}
+        >
+          <img
+            src={selectedImage}
+            alt="Visualização ampliada"
+            className="max-h-full max-w-full rounded-lg object-contain"
+          />
+        </div>
+      )}
     </>
   )
 }

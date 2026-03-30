@@ -12,9 +12,21 @@ export function setApi(impl) {
   _api = impl
 }
 
+function resolveApi() {
+  if (_api) {
+    return _api
+  }
+
+  if (typeof window !== 'undefined' && window.api) {
+    _api = window.api
+    return _api
+  }
+
+  throw new Error('[api] Nenhuma implementação de API foi registrada. Chame setApi() antes de usar.')
+}
+
 export function getApi() {
-  if (!_api) throw new Error('[api] Nenhuma implementação de API foi registrada. Chame setApi() antes de usar.')
-  return _api
+  return resolveApi()
 }
 
 // Atalhos para uso direto no store/hooks
@@ -40,5 +52,10 @@ export const api = {
   deleteNote: (...args) => getApi().deleteNote(...args),
 
   importBookmarks: (...args) => getApi().importBookmarks(...args),
+  getXAuthStatus: (...args) => getApi().getXAuthStatus(...args),
+  saveXAuthConfig: (...args) => getApi().saveXAuthConfig(...args),
+  connectXAccount: (...args) => getApi().connectXAccount(...args),
+  disconnectXAccount: (...args) => getApi().disconnectXAccount(...args),
+  syncXBookmarks: (...args) => getApi().syncXBookmarks(...args),
   getStats: (...args) => getApi().getStats(...args),
 }

@@ -38,11 +38,11 @@ body {
   }
 
   .modal-container {
-    @apply w-full overflow-hidden rounded-xl border border-outline-variant/10 bg-surface-container shadow-cyan;
+    @apply flex max-h-[90vh] w-full flex-col overflow-hidden rounded-xl border border-outline-variant/10 bg-surface-container shadow-cyan;
   }
 
   .modal-header {
-    @apply sticky top-0 flex items-center justify-between border-b border-outline-variant/10 bg-surface-container p-6;
+    @apply sticky top-0 z-10 flex items-center justify-between border-b border-outline-variant/10 bg-surface-container p-6;
   }
 
   .btn-base {

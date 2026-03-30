@@ -1,0 +1,10 @@
+const { app } = require('electron')
+const Database = require('better-sqlite3')
+const os = require('os')
+const path = require('path')
+app.whenReady().then(() => {
+  const db = new Database(path.join(os.homedir(), 'AppData', 'Local', 'twitter-bookmarks', 'bookmarks.db'))
+  const row = db.prepare("SELECT id, full_text, media_urls, article_data, raw_json FROM bookmarks WHERE id = '2037203679997018362'").get()
+  console.log(JSON.stringify(row, null, 2))
+  app.exit(0)
+})

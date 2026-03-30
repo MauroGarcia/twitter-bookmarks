@@ -92,6 +92,7 @@ export const useAppStore = create((set, get) => ({
   setIsLoading: (loading) => set({ isLoading: loading }),
   setIsLoadingMore: (loading) => set({ isLoadingMore: loading }),
   setIsUsingMockData: (isUsingMockData) => set({ isUsingMockData }),
+  resetBookmarksCache: () => set({ bookmarksCache: {}, hasMoreBookmarks: false }),
   setImportDialog: (open) => set({ importDialog: open }),
   setEditTagDialog: (open) => set({ editTagDialog: open }),
   setEditingTag: (tag) => set({ editingTag: tag }),

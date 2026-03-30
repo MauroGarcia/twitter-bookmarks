@@ -151,6 +151,30 @@ const httpApi = {
   ),
 
   importBookmarks: async (payload) => (await getMockApi()).importBookmarks(payload),
+  getXAuthStatus: async () => ({
+    hasConfig: false,
+    connected: false,
+    config: {
+      clientId: '',
+      hasClientSecret: false,
+      redirectUri: '',
+      scopes: []
+    },
+    profile: null,
+    lastSyncedAt: null
+  }),
+  saveXAuthConfig: async () => {
+    throw new Error('A conexão com X está disponível apenas no app desktop')
+  },
+  connectXAccount: async () => {
+    throw new Error('A conexão com X está disponível apenas no app desktop')
+  },
+  disconnectXAccount: async () => {
+    throw new Error('A conexão com X está disponível apenas no app desktop')
+  },
+  syncXBookmarks: async () => {
+    throw new Error('A sincronização com X está disponível apenas no app desktop')
+  },
   getStats: withMockFallbackOnEmpty(
     () => fetchJson('/api/stats'),
     (mockApi) => mockApi.getStats(),

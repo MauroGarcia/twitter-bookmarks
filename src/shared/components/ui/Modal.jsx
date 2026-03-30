@@ -6,6 +6,7 @@ const sizes = {
   sm: 'max-w-sm',
   md: 'max-w-lg',
   lg: 'max-w-2xl',
+  xl: 'max-w-4xl',
 }
 
 export function Modal({
@@ -22,8 +23,11 @@ export function Modal({
   if (!isOpen) return null
 
   return (
-    <div className="modal-overlay">
-      <div className={clsx('modal-container', sizes[size] ?? sizes.md, containerClassName)}>
+    <div className="modal-overlay" onClick={onClose}>
+      <div
+        className={clsx('modal-container', sizes[size] ?? sizes.md, containerClassName)}
+        onClick={(event) => event.stopPropagation()}
+      >
         {showHeader && (
           <div className="modal-header">
             <h2 className="font-headline text-lg font-bold text-on-surface">{title}</h2>

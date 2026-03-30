@@ -1,0 +1,16 @@
+const { app } = require('electron')
+const Database = require('better-sqlite3')
+const fs = require('fs')
+const path = require('path')
+const os = require('os')
+
+app.whenReady().then(() => {
+  const dbPath = path.join(os.homedir(), 'AppData', 'Local', 'twitter-bookmarks', 'bookmarks.db')
+  const db = new Database(dbPath)
+  const row = db.prepare("SELECT id, author_name, author_handle, full_text, media_urls, urls, article_data, raw_json FROM bookmarks WHERE id = '2037203679997018362'").get()
+  const outputPath = path.join(process.cwd(), 'docs', 'analysis', 'x-article-sample-2037203679997018362.json')
+  fs.mkdirSync(path.dirname(outputPath), { recursive: true })
+  fs.writeFileSync(outputPath, JSON.stringify(row, null, 2), 'utf8')
+  console.log(outputPath)
+  app.exit(0)
+})

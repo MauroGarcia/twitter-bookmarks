@@ -151,6 +151,10 @@ function ensureBookmarkColumn(columnName, definition) {
   }
 }
 
+function ensureBookmarkJsonColumn(columnName) {
+  ensureBookmarkColumn(columnName, 'TEXT')
+}
+
 function ensureTagColumn(columnName, definition) {
   const columns = db.prepare('PRAGMA table_info(tags)').all()
 
@@ -179,6 +183,8 @@ export function initDb() {
       has_media INTEGER DEFAULT 0,
       media_urls TEXT,
       urls TEXT,
+      article_data TEXT,
+      quoted_tweet TEXT,
       raw_json TEXT
     );
 
@@ -235,6 +241,8 @@ export function initDb() {
   ensureBookmarkColumn('is_favorite', 'INTEGER NOT NULL DEFAULT 0')
   ensureBookmarkColumn('is_archived', 'INTEGER NOT NULL DEFAULT 0')
   ensureBookmarkColumn('author_handle_normalized', 'TEXT')
+  ensureBookmarkJsonColumn('article_data')
+  ensureBookmarkJsonColumn('quoted_tweet')
   ensureTagColumn('name_normalized', 'TEXT')
   db.exec(`
     UPDATE bookmarks
@@ -268,8 +276,8 @@ export function createBookmark(bookmark) {
     INSERT INTO bookmarks (
       id, tweet_url, full_text, author_name, author_handle, author_handle_normalized,
       author_avatar_url, created_at, imported_at, like_count,
-      retweet_count, is_favorite, is_archived, has_media, media_urls, urls, raw_json
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      retweet_count, is_favorite, is_archived, has_media, media_urls, urls, article_data, quoted_tweet, raw_json
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `)
 
   return stmt.run(
@@ -289,6 +297,56 @@ export function createBookmark(bookmark) {
     bookmark.has_media ? 1 : 0,
     bookmark.media_urls ? JSON.stringify(bookmark.media_urls) : null,
     bookmark.urls ? JSON.stringify(bookmark.urls) : null,
+    bookmark.article_data ? JSON.stringify(bookmark.article_data) : null,
+    bookmark.quoted_tweet ? JSON.stringify(bookmark.quoted_tweet) : null,
+    bookmark.raw_json ? JSON.stringify(bookmark.raw_json) : null
+  )
+}
+
+export function upsertBookmark(bookmark) {
+  const stmt = db.prepare(`
+    INSERT INTO bookmarks (
+      id, tweet_url, full_text, author_name, author_handle, author_handle_normalized,
+      author_avatar_url, created_at, imported_at, like_count,
+      retweet_count, is_favorite, is_archived, has_media, media_urls, urls, article_data, quoted_tweet, raw_json
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(id) DO UPDATE SET
+      tweet_url = excluded.tweet_url,
+      full_text = excluded.full_text,
+      author_name = excluded.author_name,
+      author_handle = excluded.author_handle,
+      author_handle_normalized = excluded.author_handle_normalized,
+      author_avatar_url = excluded.author_avatar_url,
+      created_at = excluded.created_at,
+      like_count = excluded.like_count,
+      retweet_count = excluded.retweet_count,
+      has_media = excluded.has_media,
+      media_urls = excluded.media_urls,
+      urls = excluded.urls,
+      article_data = excluded.article_data,
+      quoted_tweet = excluded.quoted_tweet,
+      raw_json = excluded.raw_json
+  `)
+
+  return stmt.run(
+    bookmark.id,
+    bookmark.tweet_url,
+    bookmark.full_text,
+    bookmark.author_name,
+    bookmark.author_handle,
+    normalizeLookupValue(bookmark.author_handle),
+    bookmark.author_avatar_url,
+    bookmark.created_at,
+    bookmark.imported_at,
+    bookmark.like_count || 0,
+    bookmark.retweet_count || 0,
+    bookmark.is_favorite ? 1 : 0,
+    bookmark.is_archived ? 1 : 0,
+    bookmark.has_media ? 1 : 0,
+    bookmark.media_urls ? JSON.stringify(bookmark.media_urls) : null,
+    bookmark.urls ? JSON.stringify(bookmark.urls) : null,
+    bookmark.article_data ? JSON.stringify(bookmark.article_data) : null,
+    bookmark.quoted_tweet ? JSON.stringify(bookmark.quoted_tweet) : null,
     bookmark.raw_json ? JSON.stringify(bookmark.raw_json) : null
   )
 }
@@ -338,6 +396,11 @@ export function getAllAuthors() {
 export function getTagById(id) {
   const stmt = db.prepare('SELECT * FROM tags WHERE id = ?')
   return stmt.get(id)
+}
+
+export function getTagByName(name) {
+  const stmt = db.prepare('SELECT * FROM tags WHERE name_normalized = ?')
+  return stmt.get(normalizeLookupValue(name))
 }
 
 export function createTag(name, color = '#6366f1') {

@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Menu } from 'electron'
+import { app, BrowserWindow, Menu, shell } from 'electron'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import { initDb } from './db.js'
@@ -10,24 +10,54 @@ const __dirname = path.dirname(__filename)
 let mainWindow
 
 function createWindow() {
+  const preloadPath = path.join(__dirname, '../preload/index.mjs')
+  console.log('[main] creating window with preload:', preloadPath)
+
   mainWindow = new BrowserWindow({
-    width: 1200,
-    height: 800,
+    width: 1440,
+    height: 960,
+    show: false,
     webPreferences: {
-      preload: path.join(__dirname, '../preload/index.js'),
+      preload: preloadPath,
       nodeIntegration: false,
-      contextIsolation: true
+      contextIsolation: true,
+      sandbox: false
     }
   })
 
   const isDev = !app.isPackaged
 
   if (isDev) {
-    mainWindow.webContents.openDevTools()
     mainWindow.loadURL('http://localhost:5173')
   } else {
     mainWindow.loadFile(path.join(__dirname, '../../out/renderer/index.html'))
   }
+
+  mainWindow.maximize()
+  mainWindow.show()
+
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    shell.openExternal(url)
+    return { action: 'deny' }
+  })
+
+  mainWindow.webContents.on('will-navigate', (event, url) => {
+    const currentUrl = mainWindow.webContents.getURL()
+
+    if (url !== currentUrl) {
+      event.preventDefault()
+      shell.openExternal(url)
+    }
+  })
+
+  mainWindow.webContents.on('did-finish-load', async () => {
+    try {
+      const hasApi = await mainWindow.webContents.executeJavaScript('typeof window.api')
+      console.log('[main] renderer window.api type:', hasApi)
+    } catch (error) {
+      console.error('[main] failed to inspect window.api:', error)
+    }
+  })
 
   mainWindow.on('closed', () => {
     mainWindow = null

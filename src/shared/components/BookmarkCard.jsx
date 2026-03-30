@@ -32,6 +32,119 @@ function getCardTone(variant) {
   return 'bg-surface-container-high hover:bg-surface-bright'
 }
 
+function isLikelyArticleHeading(line) {
+  const value = `${line || ''}`.trim()
+
+  return Boolean(
+    value &&
+    value.length <= 90 &&
+    !/[.:!?]$/.test(value) &&
+    !value.startsWith('-') &&
+    !value.startsWith('•') &&
+    !value.startsWith('>')
+  )
+}
+
+export const ArticleText = memo(function ArticleText({ text, className = '' }) {
+  if (!text) return null
+
+  const lines = text.split('\n')
+
+  return (
+    <div className={className}>
+      {lines.map((line, index) => {
+        const trimmed = line.trim()
+
+        if (!trimmed) {
+          return <div key={index} className="h-3" />
+        }
+
+        if (trimmed.startsWith('>')) {
+          return (
+            <blockquote
+              key={index}
+              className="my-3 border-l-2 border-secondary/40 pl-4 text-sm italic text-on-surface-variant"
+            >
+              {trimmed.replace(/^>\s?/, '')}
+            </blockquote>
+          )
+        }
+
+        if (/^(\d+\.|-|•)\s+/.test(trimmed)) {
+          return (
+            <div key={index} className="mt-2 flex gap-3 text-sm leading-relaxed text-on-surface-variant">
+              <span className="pt-0.5 text-secondary">{trimmed.match(/^(\d+\.|-|•)/)?.[0] || '•'}</span>
+              <TweetText text={trimmed.replace(/^(\d+\.|-|•)\s+/, '')} className="flex-1" />
+            </div>
+          )
+        }
+
+        if (isLikelyArticleHeading(trimmed)) {
+          return (
+            <p key={index} className="mt-4 text-base font-semibold text-on-surface">
+              {trimmed}
+            </p>
+          )
+        }
+
+        return (
+          <TweetText
+            key={index}
+            text={trimmed}
+            className="mt-2 text-sm leading-relaxed text-on-surface-variant"
+          />
+        )
+      })}
+    </div>
+  )
+})
+
+export function ArticlePreview({ article, compact = false, onImageClick }) {
+  if (!article?.title && !article?.text) {
+    return null
+  }
+
+  const articleImage = article.media_urls?.[0] || null
+  const articleImages = article.media_urls || []
+
+  return (
+    <div className={`relative rounded-lg border border-outline-variant/20 bg-surface-container-highest/60 ${compact ? 'max-h-[26rem] overflow-hidden p-3' : 'p-4'}`}>
+      {!compact && articleImage && (
+        <div className={`mb-3 overflow-hidden rounded-lg border border-outline-variant/10 ${compact ? 'aspect-video' : 'aspect-[16/9]'}`}>
+          <button type="button" className="block h-full w-full" onClick={() => onImageClick?.(articleImage)}>
+            <img src={articleImage} alt={article.title || 'Article preview'} className="h-full w-full object-contain bg-black/20" />
+          </button>
+        </div>
+      )}
+      {article.title && (
+        <p className={`font-headline font-semibold text-on-surface ${compact ? 'text-sm' : 'text-base'}`}>
+          {article.title}
+        </p>
+      )}
+      {article.text && (
+        <ArticleText
+          text={article.text}
+          className={compact ? 'mt-2 max-h-48 overflow-hidden' : 'mt-2'}
+        />
+      )}
+      {!compact && articleImages.length > 1 && (
+        <div className="mt-4 grid grid-cols-2 gap-3">
+          {articleImages.slice(1).map((imageUrl, index) => (
+            <div key={`${imageUrl}-${index}`} className="aspect-video overflow-hidden rounded-lg border border-outline-variant/10">
+              <button type="button" className="block h-full w-full" onClick={() => onImageClick?.(imageUrl)}>
+                <img src={imageUrl} alt={`${article.title || 'Article'} image ${index + 2}`} className="h-full w-full object-contain bg-black/20" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+      {compact && (
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-surface-container-highest/95 to-transparent" />
+      )}
+    </div>
+  )
+}
+
 export const TweetText = memo(function TweetText({ text, className = '' }) {
   if (!text) return null
 
@@ -102,8 +215,9 @@ export const BookmarkCard = memo(function BookmarkCard({
   onToggleArchived
 }) {
   const mediaUrls = bookmark.mediaUrls || []
+  const article = bookmark.article_data || null
   const linkItems = bookmark.linkItems || []
-  const coverImage = mediaUrls[0] || null
+  const coverImage = article ? null : (mediaUrls[0] || null)
   const [isFavoritingBurstVisible, setIsFavoritingBurstVisible] = useState(false)
 
   useEffect(() => {
@@ -178,6 +292,12 @@ export const BookmarkCard = memo(function BookmarkCard({
         text={bookmark.full_text}
         className={`font-body leading-relaxed text-on-surface ${variant === 'feature' ? 'mb-4 text-base' : 'mb-4 text-sm'}`}
       />
+
+      {article && (
+        <div className="mb-5">
+          <ArticlePreview article={article} compact />
+        </div>
+      )}
 
       {bookmark.quoted_tweet && (
         <div className="mb-5 rounded-lg border border-outline-variant/20 bg-surface-container-highest/60 p-3">

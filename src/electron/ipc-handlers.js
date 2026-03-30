@@ -1,6 +1,13 @@
 import { ipcMain, dialog } from 'electron'
 import * as db from './db.js'
 import { importBookmarks } from './twitter-importer.js'
+import {
+  connectXAccount,
+  disconnectXAccount,
+  getXAuthStatus,
+  saveXAuthConfig
+} from './x-auth.js'
+import { syncXBookmarks } from './x-bookmarks-client.js'
 
 // Helper para error handling em handlers
 function createErrorHandler(handlerName, handler) {
@@ -121,6 +128,27 @@ export function registerIpcHandlers() {
       console.error('[Import Error]:', error)
       return { success: false, message: `Erro na importação: ${error.message}` }
     }
+  }))
+
+  // ============ X AUTH / SYNC ============
+  ipcMain.handle('x:getAuthStatus', createErrorHandler('x:getAuthStatus', () => {
+    return getXAuthStatus()
+  }))
+
+  ipcMain.handle('x:saveConfig', createErrorHandler('x:saveConfig', (event, config) => {
+    return saveXAuthConfig(config)
+  }))
+
+  ipcMain.handle('x:connect', createErrorHandler('x:connect', async (event, config) => {
+    return connectXAccount(config)
+  }))
+
+  ipcMain.handle('x:disconnect', createErrorHandler('x:disconnect', () => {
+    return disconnectXAccount()
+  }))
+
+  ipcMain.handle('x:syncBookmarks', createErrorHandler('x:syncBookmarks', async () => {
+    return syncXBookmarks()
   }))
 
   // ============ STATS ============
