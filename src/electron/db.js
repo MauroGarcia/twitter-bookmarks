@@ -19,10 +19,6 @@ if (!fs.existsSync(DB_DIR)) {
 const db = new Database(DB_PATH)
 db.pragma('journal_mode = WAL')
 
-function escapeLike(value) {
-  return `${value}`.replace(/[\\%_]/g, '\\$&')
-}
-
 function normalizeLookupValue(value) {
   return `${value}`.trim().toLowerCase()
 }

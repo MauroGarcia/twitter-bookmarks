@@ -1,4 +1,3 @@
-import { useEffect } from 'react'
 import { useAppStore } from '../store/appStore'
 
 export function useBookmarks() {

@@ -242,7 +242,7 @@ export function BookmarkList({ onSelectBookmark }) {
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_300px]">
         <div>
           <div className="columns-1 gap-8 md:columns-2 xl:columns-3 [column-gap:2rem]">
-            {renderedBookmarks.map((bookmark, index) => (
+            {renderedBookmarks.map((bookmark) => (
               <BookmarkGridItem
                 key={bookmark.id}
                 bookmark={bookmark}

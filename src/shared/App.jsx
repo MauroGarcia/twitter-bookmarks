@@ -38,7 +38,7 @@ export default function App() {
     }
 
     loadBookmarks()
-  }, [activeView, selectedTag, searchQuery, searchTagNames, searchAuthorHandles])
+  }, [activeView, selectedTag, searchQuery, searchTagNames, searchAuthorHandles, loadBookmarks])
 
   const handleSelectBookmark = (bookmark) => {
     setSelectedBookmark(bookmark)

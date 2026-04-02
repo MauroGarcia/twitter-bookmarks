@@ -8,6 +8,7 @@
     "dev:web": "vite --config vite.web.config.mjs",
     "build": "electron-vite build",
     "build:web": "vite build --config vite.web.config.mjs",
+    "lint": "eslint .",
     "preview": "electron-vite preview",
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",
@@ -46,6 +47,7 @@
     "zustand": "^5.0.12"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.4",
     "@playwright/test": "^1.58.2",
     "@tailwindcss/postcss": "^4.2.2",
     "@vitejs/plugin-react": "^4.7.0",
@@ -53,6 +55,11 @@
     "electron": "^41.1.0",
     "electron-builder": "^26.8.1",
     "electron-vite": "^5.0.0",
+    "eslint": "^9.39.4",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.5.2",
+    "globals": "^17.4.0",
     "postcss": "^8.5.8",
     "tailwindcss": "^4.2.2",
     "vite": "^7.3.1"

@@ -6,7 +6,7 @@ export function useTags() {
 
   useEffect(() => {
     loadTags()
-  }, [])
+  }, [loadTags])
 
   return { tags, loadTags }
 }

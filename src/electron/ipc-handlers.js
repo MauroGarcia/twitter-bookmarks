@@ -52,7 +52,7 @@ export function registerIpcHandlers() {
   }))
 
   // ============ TAGS ============
-  ipcMain.handle('tags:getAll', createErrorHandler('tags:getAll', (event) => {
+  ipcMain.handle('tags:getAll', createErrorHandler('tags:getAll', () => {
     return db.getAllTags()
   }))
 
@@ -106,7 +106,7 @@ export function registerIpcHandlers() {
   }))
 
   // ============ IMPORT ============
-  ipcMain.handle('import:run', createErrorHandler('import:run', async (event) => {
+  ipcMain.handle('import:run', createErrorHandler('import:run', async () => {
     const result = await dialog.showOpenDialog({
       title: 'Selecionar arquivo bookmarks.js',
       defaultPath: require('os').homedir(),
@@ -152,7 +152,7 @@ export function registerIpcHandlers() {
   }))
 
   // ============ STATS ============
-  ipcMain.handle('app:getStats', createErrorHandler('app:getStats', (event) => {
+  ipcMain.handle('app:getStats', createErrorHandler('app:getStats', () => {
     return db.getStats()
   }))
 }
