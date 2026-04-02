@@ -10,6 +10,7 @@ export function ImportDialog() {
   const {
     importDialog,
     setImportDialog,
+    loadTags,
     loadAuthors,
     loadBookmarks,
     loadStats,
@@ -31,6 +32,7 @@ export function ImportDialog() {
   const refreshData = async () => {
     setIsUsingMockData(false)
     resetBookmarksCache()
+    await loadTags()
     await loadStats()
     await loadAuthors()
     await loadBookmarks()

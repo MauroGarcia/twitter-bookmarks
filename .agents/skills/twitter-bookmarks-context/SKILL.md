@@ -49,4 +49,5 @@ Use this skill at the start of work in this repository when you need fast, curre
 3. If the task touches search or listing, review `SearchBar`, `BookmarkList`, `appStore`, and `db.js` together.
 4. If the task touches import or X sync, trace `ImportDialog` -> `shared/services/api.js` -> `preload/index.js`/`web/main.jsx` -> `ipc-handlers.js` -> `x-auth.js` and `x-bookmarks-client.js`.
 5. If the task touches performance, preserve the stable optimizations already on branch.
-6. Prefer atomic commits and validate with `npm run build` or `npm run build:web`.
+6. For local SQLite inspection or one-off fixes, prefer `npm run db:doctor` and `npm run db:query -- "<SQL>"` instead of ad hoc scripts.
+7. Prefer atomic commits and validate with `npm run build` or `npm run build:web`.

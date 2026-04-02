@@ -68,8 +68,16 @@ npm run dev
 npm run dev:web
 npm run build
 npm run build:web
+npm run db:doctor
+npm run db:query -- "SELECT id, name FROM tags ORDER BY name"
 npm run seed:mock
 ```
+
+## Database Operations
+
+- Prefer `npm run db:doctor` for a quick integrity and anomaly snapshot of the local SQLite database.
+- Prefer `npm run db:query -- "<SQL>"` for direct inspection or one-off SQL fixes.
+- These commands use the Electron runtime, which avoids the `better-sqlite3` ABI mismatch you may hit with the system `node`.
 
 ## LLM Context Files
 
@@ -78,4 +86,4 @@ npm run seed:mock
 - `.agents/skills/twitter-bookmarks-context/SKILL.md` for compact project context
 - `.agents/skills/e2e-testing-patterns/SKILL.md` for E2E patterns reference
 
-Last updated: 2026-03-29
+Last updated: 2026-04-01

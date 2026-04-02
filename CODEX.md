@@ -43,6 +43,9 @@ Important note:
 - validate with `npm run build:web` for shared/web-only changes
 - keep Zustand as the single source of truth for global UI state
 - put DB migrations in `initDb()`
+- use `npm run db:doctor` for quick SQLite diagnostics
+- use `npm run db:query -- "<SQL>"` for direct database inspection or one-off fixes
+- avoid ad hoc Node DB scripts when `db:query` is enough, because `better-sqlite3` must run on the Electron runtime
 
 ## Extra Context
 

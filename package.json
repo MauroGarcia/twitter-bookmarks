@@ -12,6 +12,8 @@
     "preview": "electron-vite preview",
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",
+    "db:doctor": "electron scripts/db-tool.cjs doctor",
+    "db:query": "electron scripts/db-tool.cjs query",
     "pack": "npm run build && electron-builder --dir",
     "dist": "npm run build && electron-builder",
     "seed:mock": "node tests/manual/seed-public-mock.mjs"

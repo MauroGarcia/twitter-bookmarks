@@ -58,10 +58,22 @@ npm run build     # Build completo do Electron
 npm run build:web # Build da versao web
 npm run test:e2e  # Executa a suite E2E com Playwright
 npm run test:e2e:headed # Executa a suite E2E abrindo o navegador
+npm run db:doctor # Diagnostico rapido da base SQLite local
+npm run db:query -- "SELECT * FROM tags ORDER BY name" # Executa SQL direto na base local
 npm run pack      # Empacota sem instalador
 npm run dist      # Gera instalador NSIS
 npm run seed:mock # Popula dados mock para testes manuais
 ```
+
+### Utilitarios de banco
+
+```bash
+npm run db:doctor
+npm run db:query -- "SELECT id, name, color FROM tags ORDER BY name"
+npm run db:query -- "UPDATE tags SET color = '#f97316' WHERE name = 'article'"
+```
+
+Os comandos acima usam a mesma runtime do Electron para acessar `%AppData%\\Local\\twitter-bookmarks\\bookmarks.db`, evitando os problemas de compatibilidade do `better-sqlite3` com o `node` do sistema.
 
 ## Estrutura
 
