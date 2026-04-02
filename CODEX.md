@@ -47,6 +47,15 @@ Important note:
 - use `npm run db:query -- "<SQL>"` for direct database inspection or one-off fixes
 - avoid ad hoc Node DB scripts when `db:query` is enough, because `better-sqlite3` must run on the Electron runtime
 
+## Windows Sandbox Note
+
+- On this machine, harmless read-only commands can fail before execution with `windows sandbox: runner error: CreateProcessAsUserW failed: 5`.
+- Treat that as a Windows runner launch restriction, not proof that the workspace itself is unreadable.
+- Do not claim that "the sandbox is blocking simple workspace reads" unless an actual workspace read was denied after the command started.
+- Prefer accurate wording: the command launch was blocked by the Windows sandbox, so use an approved command path first or request elevation for that specific read.
+- If `rg`, `git`, `Get-Content`, or similar inspection commands fail with that runner error, request elevation only for the failing command and keep the scope narrow.
+- See `docs/codex-windows-sandbox.md` for the repo-specific workflow.
+
 ## Extra Context
 
 - `README.md` is the human overview
