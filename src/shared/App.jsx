@@ -55,7 +55,7 @@ export default function App() {
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <Header onImport={() => setImportDialog(true)} />
 
-        <div className="flex-1 overflow-y-auto p-8">
+        <div className="scroll-fade-edges flex-1 overflow-y-auto p-8">
           {BOOKMARK_VIEWS.has(activeView)
             ? <BookmarkList onSelectBookmark={handleSelectBookmark} />
             : <TagsView />}

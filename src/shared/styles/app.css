@@ -6,6 +6,30 @@
   --radius-layout: 16px;
 }
 
+@property --fade-top-start {
+  syntax: '<percentage>';
+  initial-value: 0%;
+  inherits: false;
+}
+
+@property --fade-top-end {
+  syntax: '<percentage>';
+  initial-value: 7%;
+  inherits: false;
+}
+
+@property --fade-bottom-start {
+  syntax: '<percentage>';
+  initial-value: 93%;
+  inherits: false;
+}
+
+@property --fade-bottom-end {
+  syntax: '<percentage>';
+  initial-value: 100%;
+  inherits: false;
+}
+
 .rounded-layout {
   border-radius: var(--radius-layout);
 }
@@ -30,6 +54,42 @@ body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+.scroll-fade-edges {
+  --fade-top-start: 0%;
+  --fade-top-end: 7%;
+  --fade-bottom-start: 93%;
+  --fade-bottom-end: 100%;
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent var(--fade-top-start),
+    black var(--fade-top-end),
+    black var(--fade-bottom-start),
+    transparent var(--fade-bottom-end)
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent var(--fade-top-start),
+    black var(--fade-top-end),
+    black var(--fade-bottom-start),
+    transparent var(--fade-bottom-end)
+  );
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  transition:
+    --fade-top-start 220ms ease,
+    --fade-top-end 220ms ease,
+    --fade-bottom-start 220ms ease,
+    --fade-bottom-end 220ms ease;
+}
+
+.scroll-fade-edges:hover,
+.scroll-fade-edges:focus-within {
+  --fade-top-end: 8.5%;
+  --fade-bottom-start: 91.5%;
 }
 
 @layer components {
