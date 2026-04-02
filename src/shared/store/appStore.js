@@ -52,6 +52,16 @@ function normalizePageResult(result, offset, limit) {
   }
 }
 
+function canFallbackToMockBookmarks(filters = {}) {
+  const isAllView = !filters.view || filters.view === 'all'
+  const hasNoFilters = !filters.tag
+    && !filters.search
+    && (!filters.tags || filters.tags.length === 0)
+    && (!filters.authors || filters.authors.length === 0)
+
+  return isAllView && hasNoFilters
+}
+
 export const useAppStore = create((set, get) => ({
   // Estado
   bookmarks: [],
@@ -168,7 +178,7 @@ export const useAppStore = create((set, get) => ({
         return
       }
 
-      if (page.total === 0 && !state.selectedTag && !state.searchQuery && state.searchTagNames.length === 0 && state.searchAuthorHandles.length === 0) {
+      if (page.total === 0 && canFallbackToMockBookmarks(filters)) {
         const mockApi = await getMockApi()
         const mockBookmarks = await mockApi.getBookmarksWithTags(filters)
         const mockStats = await mockApi.getStats()
@@ -209,7 +219,7 @@ export const useAppStore = create((set, get) => ({
     } catch (error) {
       console.error('Erro ao carregar bookmarks:', error)
 
-      if ((!state.selectedTag && !state.searchQuery && state.searchTagNames.length === 0 && state.searchAuthorHandles.length === 0) || shouldPreferMockData) {
+      if (canFallbackToMockBookmarks(filters) || shouldPreferMockData) {
         const mockApi = await getMockApi()
         const mockBookmarks = await mockApi.getBookmarksWithTags(filters)
         const mockStats = await mockApi.getStats()
