@@ -178,6 +178,11 @@ export function ImportDialog() {
                   <p className="mt-1">
                     Último sync: {xStatus.lastSyncedAt ? new Date(xStatus.lastSyncedAt).toLocaleString('pt-BR') : 'ainda não executado'}
                   </p>
+                  {xStatus.hasPendingBookmarkPages && (
+                    <p className="mt-1 text-secondary">
+                      Ainda há mais bookmarks para buscar no próximo sync.
+                    </p>
+                  )}
                 </>
               )
             : (

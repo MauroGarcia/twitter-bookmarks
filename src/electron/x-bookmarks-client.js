@@ -1,8 +1,13 @@
 import * as db from './db.js'
-import { getValidXAccessToken, getXAuthStatus, markXBookmarksSynced } from './x-auth.js'
+import {
+  getValidXAccessToken,
+  getXAuthStatus,
+  getXBookmarksSyncCursor,
+  markXBookmarksSynced
+} from './x-auth.js'
 
 const X_API_BASE_URL = 'https://api.x.com/2'
-const BOOKMARK_PAGE_SIZE = 10
+const BOOKMARK_PAGE_SIZE = 50
 const ARTICLE_TAG_NAME = 'article'
 const ARTICLE_TAG_COLOR = '#f97316'
 
@@ -190,7 +195,7 @@ function normalizeTweetRecord(tweet, userById, mediaByKey, referencedTweetsById)
   }
 }
 
-async function fetchAllBookmarks() {
+async function fetchBookmarksPage({ paginationToken = null } = {}) {
   const accessToken = await getValidXAccessToken()
   const currentUser = await getCurrentUser(accessToken)
 
@@ -208,6 +213,9 @@ async function fetchAllBookmarks() {
   url.searchParams.set('user.fields', 'id,name,username,profile_image_url')
   url.searchParams.set('media.fields', 'media_key,preview_image_url,type,url')
   url.searchParams.set('expansions', 'author_id,attachments.media_keys,referenced_tweets.id,referenced_tweets.id.author_id,article.cover_media,article.media_entities')
+  if (paginationToken) {
+    url.searchParams.set('pagination_token', paginationToken)
+  }
 
   const payload = await fetchJson(url, accessToken)
   const tweets = payload.data || []
@@ -219,7 +227,10 @@ async function fetchAllBookmarks() {
     collected.push(normalizeTweetRecord(tweet, userById, mediaByKey, referencedTweetsById))
   })
 
-  return collected
+  return {
+    bookmarks: collected,
+    nextToken: payload.meta?.next_token || null
+  }
 }
 
 function ensureArticleTag() {
@@ -240,7 +251,9 @@ export async function syncXBookmarks() {
     throw new Error('Conecte sua conta X antes de sincronizar')
   }
 
-  const bookmarks = await fetchAllBookmarks()
+  const syncCursor = getXBookmarksSyncCursor()
+  const page = await fetchBookmarksPage({ paginationToken: syncCursor.nextToken })
+  const bookmarks = page.bookmarks
 
   const insertBookmarks = db.default.transaction(() => {
     let imported = 0
@@ -268,15 +281,17 @@ export async function syncXBookmarks() {
   })
 
   const result = insertBookmarks()
-  markXBookmarksSynced()
+  markXBookmarksSynced({ nextToken: page.nextToken })
+  const hasMore = Boolean(page.nextToken)
 
   return {
     success: true,
     imported: result.imported,
     updated: result.updated,
     totalFetched: bookmarks.length,
+    hasMore,
     message: result.imported > 0 || result.updated > 0
-      ? `${result.imported} novos e ${result.updated} atualizados da X API`
+      ? `${result.imported} novos e ${result.updated} atualizados da X API${hasMore ? '. Há mais 50 disponíveis no próximo sync.' : '.'}`
       : 'Nenhum bookmark novo encontrado na X API'
   }
 }

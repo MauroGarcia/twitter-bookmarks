@@ -27,7 +27,8 @@ function getDefaultState() {
     },
     tokens: null,
     profile: null,
-    lastSyncedAt: null
+    lastSyncedAt: null,
+    bookmarksNextToken: null
   }
 }
 
@@ -299,7 +300,16 @@ export function getXAuthStatus() {
       scopes: state.config.scopes
     },
     profile: state.profile,
-    lastSyncedAt: state.lastSyncedAt
+    lastSyncedAt: state.lastSyncedAt,
+    hasPendingBookmarkPages: Boolean(state.bookmarksNextToken)
+  }
+}
+
+export function getXBookmarksSyncCursor() {
+  const state = readStore()
+
+  return {
+    nextToken: state.bookmarksNextToken || null
   }
 }
 
@@ -359,7 +369,9 @@ export async function connectXAccount(config = {}) {
   writeStore({
     ...state,
     tokens,
-    profile
+    profile,
+    lastSyncedAt: null,
+    bookmarksNextToken: null
   })
 
   return getXAuthStatus()
@@ -404,16 +416,18 @@ export function disconnectXAccount() {
     ...state,
     tokens: null,
     profile: null,
-    lastSyncedAt: null
+    lastSyncedAt: null,
+    bookmarksNextToken: null
   })
 
   return getXAuthStatus()
 }
 
-export function markXBookmarksSynced() {
+export function markXBookmarksSynced({ nextToken = null } = {}) {
   const state = readStore()
   writeStore({
     ...state,
-    lastSyncedAt: new Date().toISOString()
+    lastSyncedAt: new Date().toISOString(),
+    bookmarksNextToken: nextToken || null
   })
 }
