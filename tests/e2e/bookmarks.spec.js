@@ -51,6 +51,34 @@ test('filters bookmarks with author and tag suggestions', async ({ page }) => {
   })
 })
 
+test('removes author and tag chips from the search bar', async ({ page }) => {
+  await openApp(page)
+
+  const searchInput = page.getByPlaceholder('Pesquisar bookmarks, autores ou tags...')
+
+  await searchInput.fill('@Open')
+  await page.getByRole('button', { name: /@OpenAIDevs/i }).click()
+
+  await searchInput.fill('#AI')
+  await page.getByRole('button', { name: /^#AI/i }).click()
+
+  const authorRemoveButton = page.getByLabel('Remover autor OpenAIDevs')
+  const tagRemoveButton = page.getByLabel('Remover tag AI')
+
+  await expect(authorRemoveButton).toHaveCSS('cursor', 'pointer')
+  await expect(tagRemoveButton).toHaveCSS('cursor', 'pointer')
+
+  await authorRemoveButton.click()
+  await expect(authorRemoveButton).toHaveCount(0)
+  await expect(tagRemoveButton).toBeVisible()
+  await expect(getBookmarkCard(page, workflowCardText)).toBeVisible()
+
+  await tagRemoveButton.click()
+  await expect(tagRemoveButton).toHaveCount(0)
+  await expect(getBookmarkCard(page, workflowCardText)).toBeVisible()
+  await expect(searchInput).toHaveValue('')
+})
+
 test('filters bookmarks by typing an @author handle directly', async ({ page }) => {
   await openApp(page)
 

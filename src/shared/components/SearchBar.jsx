@@ -118,6 +118,17 @@ function splitVisibleChips(items) {
   }
 }
 
+function handleChipRemoveMouseDown(event) {
+  event.preventDefault()
+  event.stopPropagation()
+}
+
+function handleChipRemove(event, onRemove) {
+  event.preventDefault()
+  event.stopPropagation()
+  onRemove()
+}
+
 function TagsSearchInput() {
   const tagSearchQuery = useAppStore((state) => state.tagSearchQuery)
   const setTagSearchQuery = useAppStore((state) => state.setTagSearchQuery)
@@ -293,13 +304,14 @@ function BookmarkSearchInput() {
         {visibleTagChips.visible.map((tagName) => (
           <span
             key={tagName}
-            className="inline-flex h-7 shrink-0 items-center gap-2 rounded-full border border-secondary/20 bg-secondary/10 px-3 py-1 text-xs font-bold text-secondary"
+            className="relative z-10 inline-flex h-7 shrink-0 items-center gap-2 rounded-full border border-secondary/20 bg-secondary/10 px-3 py-1 text-xs font-bold text-secondary"
           >
             #{tagName}
             <button
               type="button"
-              onClick={() => removeTag(tagName)}
-              className="text-secondary/70 transition-colors hover:text-secondary"
+              onMouseDown={handleChipRemoveMouseDown}
+              onClick={(event) => handleChipRemove(event, () => removeTag(tagName))}
+              className="inline-flex h-4 w-4 shrink-0 cursor-pointer items-center justify-center rounded-full text-secondary/70 transition-colors hover:text-secondary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-secondary/50"
               aria-label={`Remover tag ${tagName}`}
             >
               <X size={12} />
@@ -316,13 +328,14 @@ function BookmarkSearchInput() {
         {visibleAuthorChips.visible.map((authorHandle) => (
           <span
             key={authorHandle}
-            className="inline-flex h-7 shrink-0 items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-bold text-primary"
+            className="relative z-10 inline-flex h-7 shrink-0 items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-bold text-primary"
           >
             @{authorHandle}
             <button
               type="button"
-              onClick={() => removeAuthor(authorHandle)}
-              className="text-primary/70 transition-colors hover:text-primary"
+              onMouseDown={handleChipRemoveMouseDown}
+              onClick={(event) => handleChipRemove(event, () => removeAuthor(authorHandle))}
+              className="inline-flex h-4 w-4 shrink-0 cursor-pointer items-center justify-center rounded-full text-primary/70 transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/50"
               aria-label={`Remover autor ${authorHandle}`}
             >
               <X size={12} />
