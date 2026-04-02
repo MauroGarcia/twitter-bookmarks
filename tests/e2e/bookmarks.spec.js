@@ -51,6 +51,18 @@ test('filters bookmarks with author and tag suggestions', async ({ page }) => {
   })
 })
 
+test('filters bookmarks by typing an @author handle directly', async ({ page }) => {
+  await openApp(page)
+
+  const searchInput = page.getByPlaceholder('Pesquisar bookmarks, autores ou tags...')
+
+  await searchInput.fill('@OpenAIDevs')
+
+  await expect(getBookmarkCard(page, workflowCardText)).toBeVisible()
+  await expect(getBookmarkCard(page, appsSdkCardText)).toBeVisible()
+  await expect(getBookmarkCard(page, vercelCardText)).toHaveCount(0)
+})
+
 test('moves a bookmark from active results to favorites and archived', async ({ page }) => {
   await openApp(page)
 

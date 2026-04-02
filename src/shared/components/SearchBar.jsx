@@ -80,8 +80,12 @@ function stripPendingAuthorToken(value) {
   return `${value}`.replace(AUTHOR_TRIGGER_REGEX, ' ')
 }
 
+function replacePendingAuthorTokenWithSearchTerm(value) {
+  return `${value}`.replace(AUTHOR_TRIGGER_REGEX, (_match, handle) => (handle ? ` ${handle}` : ' '))
+}
+
 function normalizeSearchText(value) {
-  return stripPendingAuthorToken(stripPendingTagToken(value)).replace(/\s+/g, ' ').trim()
+  return replacePendingAuthorTokenWithSearchTerm(stripPendingTagToken(value)).replace(/\s+/g, ' ').trim()
 }
 
 function buildTagSuggestions(tagIndex, selectedTags, query) {
