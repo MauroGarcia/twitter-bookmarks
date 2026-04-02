@@ -4,11 +4,12 @@ Uma aplicacao Electron + React para importar, pesquisar e organizar bookmarks do
 
 ## Funcionalidades
 
-- Importacao de bookmarks via arquivo `bookmarks.js`
+- Importacao local via arquivo `bookmarks.js` no app desktop
+- Sincronizacao opcional de bookmarks diretamente com a API do X
 - Tags com cores, filtros e atribuicao por bookmark
 - Busca full-text com FTS5, chips por `#tag` e `@autor`, filtros combinaveis e paginação incremental
 - Favoritos, arquivamento e notas por bookmark
-- Persistencia local em SQLite
+- Persistencia local em SQLite no desktop
 - Tooling local para agentes com skills de Electron, design, performance, React e E2E
 
 ## Comecando
@@ -19,11 +20,18 @@ Uma aplicacao Electron + React para importar, pesquisar e organizar bookmarks do
 2. Execute o instalador
 3. Abra "Twitter Bookmarks" pelo menu Iniciar ou desktop
 
-### Importar bookmarks
+### Importar bookmarks por arquivo
 
 1. Exporte seus bookmarks do Twitter/X em **Settings** > **Download your data**
 2. Extraia o zip e localize `bookmarks.js` em `/data/`
-3. No app, clique em **Importar** e selecione o arquivo
+3. No app desktop, use o fluxo de importacao por arquivo `bookmarks.js`
+
+### Sincronizar com a API do X
+
+1. Abra **Importar**
+2. Preencha `Client ID`, `Client Secret` e `Redirect URI`
+3. Clique em **Conectar com X**
+4. Depois da autenticacao OAuth, clique em **Sincronizar bookmarks**
 
 ## Desenvolvimento
 
@@ -75,11 +83,14 @@ tests/
 ## Arquitetura atual
 
 - `src/shared/*` e a implementacao principal da interface e do estado.
-- `src/renderer/*` e `src/web/*` sao pontos de entrada e ainda mantem alguma duplicacao historica.
+- `src/shared/services/api.js` e a camada que separa a UI compartilhada da implementacao ativa de backend.
+- `src/renderer/main.jsx` injeta a API exposta pelo preload no app Electron.
+- `src/web/main.jsx` injeta a implementacao web e faz fallback para `src/shared/mock/mockApi.js` quando necessario.
 - A busca principal vive em `src/shared/components/SearchBar.jsx`.
 - O store principal vive em `src/shared/store/appStore.js`.
 - As queries estruturadas e full-text vivem em `src/electron/db.js`.
 - A listagem principal vive em `src/shared/components/BookmarkList.jsx`.
+- O fluxo de importacao/sincronizacao com X vive em `src/shared/components/ImportDialog.jsx`, `src/electron/x-auth.js` e `src/electron/x-bookmarks-client.js`.
 
 ## Estado atual de performance
 
@@ -122,7 +133,9 @@ Colunas/indices relevantes de busca:
 
 ## Privacidade
 
-Todos os dados ficam locais no computador do usuario. Nenhuma informacao e enviada para servidores externos.
+Os bookmarks, tags, notas e metadados locais ficam persistidos no computador do usuario.
+
+No app desktop, a sincronizacao com X e opcional. Quando usada, o aplicativo se comunica com `x.com` e `api.x.com` para autenticar a conta e buscar bookmarks, mas os dados sincronizados continuam sendo armazenados localmente.
 
 ## Stack tecnico
 
